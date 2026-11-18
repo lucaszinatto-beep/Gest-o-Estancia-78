@@ -1,0 +1,1867 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ESTÂNCIA 78 – Gestão Rural</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --verde:#1f3d2b; --verde2:#2a5139; --verde3:#16301f; --oliva:#6b7a3a; --oliva2:#8a9a52;
+  --ouro:#c9a54a; --ouro2:#e2c77a; --branco:#fff; --cinza:#f3f4f0; --cinza2:#e6e8e1; --cinza3:#c9ccc2;
+  --tx:#1d2420; --tx2:#4d5650; --tx3:#7b847e;
+  --ok:#1a7f4b; --erro:#c4462e; --alerta:#a8780a; --info:#2d6cc8;
+  --c-bov:#1a7f4b; --c-sui:#c4462e; --c-gal:#2d6cc8; --c-ger:#a8780a;
+  --r:10px; --sh:0 1px 2px rgba(20,40,25,.06),0 4px 14px rgba(20,40,25,.06);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font-family:Inter,system-ui,sans-serif;font-size:14px;color:var(--tx);background:var(--cinza);-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{font-family:"Barlow Condensed",Inter,sans-serif;letter-spacing:.02em;margin:0}
+button,input,select,textarea{font:inherit}
+.app{display:grid;grid-template-columns:248px 1fr;min-height:100vh}
+/* Sidebar */
+.side{background:linear-gradient(180deg,var(--verde) 0%,var(--verde3) 100%);color:#e8efe9;position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;padding-bottom:env(safe-area-inset-bottom)}
+.brand{display:flex;align-items:center;gap:10px;padding:20px 18px 16px;border-bottom:1px solid rgba(255,255,255,.08)}
+.brand svg{width:46px;height:46px;flex:none}
+.brand .t1{font-family:"Barlow Condensed";font-weight:700;font-size:23px;letter-spacing:.06em;color:#fff;line-height:1}
+.brand .t2{font-size:10.5px;letter-spacing:.32em;color:var(--ouro2);margin-top:4px;font-weight:600}
+.menu{padding:10px 10px 20px;flex:1}
+.menu a{display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:8px;color:#cfdcd2;text-decoration:none;font-weight:500;margin:1px 0;font-size:13.5px}
+.menu a svg{width:18px;height:18px;flex:none;opacity:.85}
+.menu a:hover{background:rgba(255,255,255,.06);color:#fff}
+.menu a.on{background:rgba(201,165,74,.16);color:#fff;box-shadow:inset 3px 0 0 var(--ouro)}
+.menu a .tag{margin-left:auto;font-size:9.5px;letter-spacing:.06em;background:rgba(255,255,255,.08);color:#b9c7bc;padding:2px 6px;border-radius:20px;font-weight:600}
+.menu .sep{font-size:10px;letter-spacing:.2em;color:#87a08c;padding:14px 12px 4px;font-weight:600}
+.side .foot{padding:14px 18px;font-size:11px;color:#8fa695;border-top:1px solid rgba(255,255,255,.08)}
+.side .foot b{color:var(--ouro2);font-weight:600}
+/* Main */
+.main{min-width:0;display:flex;flex-direction:column}
+.top{background:#fff;border-bottom:1px solid var(--cinza2);display:flex;align-items:center;gap:12px;padding:12px 26px;position:sticky;top:0;z-index:20;padding-top:max(12px,env(safe-area-inset-top))}
+.top h1{font-size:24px;color:var(--verde);font-weight:700}
+.top .sub{color:var(--tx3);font-size:12px;margin-top:1px}
+.top .usr{margin-left:auto;display:flex;align-items:center;gap:8px;color:var(--tx2);font-size:12.5px}
+.top .usr .av{width:30px;height:30px;border-radius:50%;background:var(--oliva);color:#fff;display:grid;place-items:center;font-weight:700;font-size:12px}
+.burger{display:none;background:none;border:0;padding:6px;color:var(--verde);cursor:pointer}
+.content{padding:22px 26px 60px;max-width:1500px;width:100%}
+.dbstate{font-size:11px;padding:3px 8px;border-radius:20px;background:var(--cinza);color:var(--tx3)}
+.dbstate.ok{background:#e4f2e9;color:var(--ok)}
+.dbstate.warn{background:#fbf0d9;color:#7a5800}
+/* Cards & grid */
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.g5{grid-template-columns:repeat(5,minmax(0,1fr))}
+.card{background:#fff;border-radius:var(--r);box-shadow:var(--sh);border:1px solid var(--cinza2);padding:16px 18px;min-width:0}
+.card h3{font-size:17px;color:var(--verde);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.card h3 .hint{font-family:Inter;font-size:11.5px;color:var(--tx3);font-weight:400;letter-spacing:0;margin-left:auto}
+.kpi{background:#fff;border-radius:var(--r);border:1px solid var(--cinza2);box-shadow:var(--sh);padding:13px 16px;position:relative;overflow:hidden;min-width:0}
+.kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--oliva)}
+.kpi.gold::before{background:var(--ouro)} .kpi.green::before{background:var(--ok)} .kpi.red::before{background:var(--erro)} .kpi.blue::before{background:var(--info)}
+.kpi .l{font-size:11.5px;color:var(--tx3);font-weight:500;text-transform:uppercase;letter-spacing:.05em}
+.kpi .v{font-family:"Barlow Condensed";font-size:26px;font-weight:700;color:var(--tx);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi .s{font-size:11.5px;color:var(--tx3);margin-top:1px}
+.pos{color:var(--ok)!important} .neg{color:var(--erro)!important}
+.section-t{font-size:13px;letter-spacing:.14em;color:var(--oliva);font-weight:700;margin:22px 0 10px;font-family:Inter;text-transform:uppercase}
+/* Toolbar / filters */
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;margin-bottom:14px}
+.bar .grow{flex:1}
+.fld{display:flex;flex-direction:column;gap:4px;min-width:0}
+.fld>span{font-size:11.5px;color:var(--tx2);font-weight:500}
+.fld input,.fld select,.fld textarea,.bar input,.bar select{border:1px solid var(--cinza3);border-radius:8px;padding:8px 10px;background:#fff;color:var(--tx);min-width:0;width:100%}
+.bar .fld{width:auto}
+.bar .fld input,.bar .fld select{width:auto;min-width:120px}
+.fld input:focus,.fld select:focus,.fld textarea:focus{outline:2px solid rgba(107,122,58,.35);border-color:var(--oliva)}
+.fld textarea{min-height:64px;resize:vertical}
+.fld input[readonly]{background:var(--cinza);font-weight:600}
+.btn{border:1px solid transparent;border-radius:8px;padding:8px 14px;cursor:pointer;font-weight:600;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;font-size:13px;line-height:1.2}
+.btn.primary{background:var(--verde);color:#fff}
+.btn.primary:hover{background:var(--verde2)}
+.btn.gold{background:var(--ouro);color:var(--verde3)}
+.btn.ghost{background:#fff;border-color:var(--cinza3);color:var(--tx)}
+.btn.ghost:hover{border-color:var(--oliva)}
+.btn.danger{background:#fff;border-color:#e5b5aa;color:var(--erro)}
+.btn.sm{padding:5px 9px;font-size:12px}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1px solid var(--cinza3);background:#fff;border-radius:20px;padding:5px 11px;font-size:12px;cursor:pointer;color:var(--tx2);font-weight:500}
+.chip.on{background:var(--verde);color:#fff;border-color:var(--verde)}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--cinza2);margin-bottom:16px;overflow-x:auto}
+.tabs a{padding:9px 14px;color:var(--tx2);text-decoration:none;font-weight:600;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;font-size:13.5px}
+.tabs a.on{color:var(--verde);border-color:var(--ouro)}
+/* Tables */
+.tw{overflow-x:auto;background:#fff;border-radius:var(--r);border:1px solid var(--cinza2);box-shadow:var(--sh)}
+table{border-collapse:collapse;width:100%}
+th{text-align:left;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--tx3);font-weight:600;padding:10px 12px;border-bottom:1px solid var(--cinza2);background:#fafbf8;white-space:nowrap}
+td{padding:9px 12px;border-bottom:1px solid #f0f1ec;vertical-align:middle}
+tr:last-child td{border-bottom:0}
+tbody tr:hover{background:#fafbf7}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+tfoot td{font-weight:700;background:#fafbf8;border-top:1px solid var(--cinza2)}
+.empty{padding:34px;text-align:center;color:var(--tx3)}
+.empty b{display:block;color:var(--tx2);font-size:15px;margin-bottom:4px}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
+.b-ok{background:#e4f2e9;color:#15663c}.b-pend{background:#fbf0d9;color:#7a5800}.b-err{background:#f9e3de;color:#a33a24}.b-par{background:#e3ecf8;color:#24589f}.b-mut{background:var(--cinza);color:var(--tx2)}
+.dot{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px;vertical-align:1px}
+.acts{display:flex;gap:4px;justify-content:flex-end}
+.ico{background:none;border:1px solid transparent;border-radius:6px;padding:4px 6px;cursor:pointer;color:var(--tx2);font-size:12px;font-weight:600}
+.ico:hover{background:var(--cinza);border-color:var(--cinza2)}
+.muted{color:var(--tx3)} .small{font-size:12px}
+.chart-box{position:relative;height:260px}
+.chart-box.sm{height:220px}
+/* Modal */
+.mback{position:fixed;inset:0;background:rgba(15,30,20,.45);display:flex;align-items:flex-start;justify-content:center;z-index:100;padding:4vh 12px;overflow-y:auto}
+.modal{background:#fff;border-radius:14px;width:100%;max-width:620px;box-shadow:0 20px 60px rgba(0,0,0,.25);margin-bottom:4vh}
+.modal.wide{max-width:900px}
+.modal header{display:flex;align-items:center;padding:16px 20px;border-bottom:1px solid var(--cinza2);background:linear-gradient(90deg,#fff,#f8f9f4);border-radius:14px 14px 0 0}
+.modal header h3{font-size:21px;color:var(--verde)}
+.modal header .x{margin-left:auto;background:none;border:0;font-size:24px;cursor:pointer;color:var(--tx3);line-height:1}
+.mbody{padding:18px 20px}
+.modal footer{display:flex;justify-content:flex-end;gap:8px;padding:12px 20px 16px;border-top:1px solid var(--cinza2)}
+.fg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 14px}
+.fg .full{grid-column:1/-1}
+.fg3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.ferr{background:#f9e3de;color:#8e2f1c;border-radius:8px;padding:9px 12px;margin-bottom:12px;font-weight:500}
+.note{background:#f4f6ec;border:1px solid #e1e6cc;color:#4d5a24;border-radius:8px;padding:9px 12px;font-size:12.5px}
+.calc{background:var(--verde);color:#fff;border-radius:10px;padding:12px 16px;display:flex;gap:22px;flex-wrap:wrap}
+.calc div{display:flex;flex-direction:column}
+.calc span{font-size:11px;color:#b9cdbf;text-transform:uppercase;letter-spacing:.06em}
+.calc b{font-family:"Barlow Condensed";font-size:22px}
+.checklist{max-height:240px;overflow-y:auto;border:1px solid var(--cinza3);border-radius:8px;padding:6px}
+.checklist label{display:flex;gap:8px;align-items:center;padding:5px 6px;border-radius:6px;cursor:pointer}
+.checklist label:hover{background:var(--cinza)}
+.toggle{display:flex;border:1px solid var(--cinza3);border-radius:8px;overflow:hidden}
+.toggle label{flex:1;text-align:center;padding:8px;cursor:pointer;font-weight:600;color:var(--tx2)}
+.toggle input{display:none}
+.toggle input:checked+span{color:#fff}
+.toggle label:has(input:checked){background:var(--verde);color:#fff}
+.dl{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 18px;margin-bottom:16px}
+.dl div span{display:block;font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:.05em}
+.dl div b{font-weight:600}
+.btnrow{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.toasts{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:200;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
+.toast{background:var(--verde);color:#fff;padding:11px 18px;border-radius:10px;z-index:200;box-shadow:0 10px 30px rgba(0,0,0,.25);font-weight:500;border-left:4px solid var(--ouro)}
+.toast.err{background:#7d2716}
+.plan{max-width:760px}
+.plan ul{margin:8px 0 0;padding-left:18px;color:var(--tx2);line-height:1.7}
+.splash{position:fixed;inset:0;background:var(--verde);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;z-index:300;gap:14px;text-align:center;padding:20px}
+.splash svg{width:96px;height:96px}
+.splash .t1{font-family:"Barlow Condensed";font-size:40px;font-weight:700;letter-spacing:.08em}
+.splash .t2{letter-spacing:.4em;color:var(--ouro2);font-size:13px;font-weight:600}
+.splash .t3{color:#b9cdbf;font-style:italic;margin-top:6px}
+.splash .msg{margin-top:16px;color:#d8e4da;max-width:420px;line-height:1.5}
+.alerts{display:flex;flex-direction:column;gap:6px}
+.alerts div{padding:8px 12px;border-radius:8px;font-size:12.5px;background:#fbf0d9;color:#6b4e00}
+.alerts div.err{background:#f9e3de;color:#8e2f1c}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--tx2);margin-top:6px}
+@media (max-width:1100px){.g5{grid-template-columns:repeat(3,minmax(0,1fr))}.g4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:860px){
+  .app{grid-template-columns:1fr}
+  .side{position:fixed;left:0;top:0;bottom:0;width:260px;z-index:90;transform:translateX(-100%);transition:transform .2s}
+  .side.open{transform:none;box-shadow:0 0 40px rgba(0,0,0,.4)}
+  .burger{display:block}
+  .top{padding:10px 14px}
+  .top h1{font-size:21px}
+  .top .usr .nm{display:none}
+  .content{padding:14px 12px 60px}
+  .g2,.g3{grid-template-columns:1fr}
+  .g4,.g5{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .fg,.fg3{grid-template-columns:1fr}
+  .dl{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .kpi .v{font-size:22px}
+  .bar .fld input,.bar .fld select{min-width:0}
+  .bar .fld{flex:1 1 140px}
+}
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:80;display:none}
+.scrim.on{display:block}
+</style>
+</head>
+<body>
+<div class="splash" id="splash">
+  <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-label="Estância 78"><path d="M32 3.5 55.5 11v19.5C55.5 46 45 56.5 32 60.5 19 56.5 8.5 46 8.5 30.5V11Z" fill="#1f3d2b" stroke="#c9a54a" stroke-width="2.4"/><path d="M14.5 15.5c1.4 5.6 5.6 8.6 11 8.9l-1.2 3.4c-6.4-.8-10.6-5.6-9.8-12.3Z" fill="#c9a54a"/><path d="M49.5 15.5c-1.4 5.6-5.6 8.6-11 8.9l1.2 3.4c6.4-.8 10.6-5.6 9.8-12.3Z" fill="#c9a54a"/><path d="M23.5 24.5h17c.8 0 1.4.7 1.3 1.5l-1.6 7.5c-.3 1.5-1 2.8-2 3.9L34.4 41c-1.3 1.4-3.5 1.4-4.8 0l-3.8-3.6c-1-1.1-1.7-2.4-2-3.9L22.2 26c-.1-.8.5-1.5 1.3-1.5Z" fill="none" stroke="#e2c77a" stroke-width="1.6"/><text x="32" y="53.5" text-anchor="middle" font-family="Barlow Condensed,Arial Narrow,sans-serif" font-weight="700" font-size="14" fill="#fff" letter-spacing="1">78</text><path d="M17 47.5h6M41 47.5h6" stroke="#8a9a52" stroke-width="1.4" stroke-linecap="round"/></svg>
+  <div><div class="t1">ESTÂNCIA 78</div><div class="t2">GESTÃO RURAL</div><div class="t3">Dados. Manejo. Resultado.</div></div>
+  <div class="msg" id="splash-msg">Conectando ao banco de dados…</div>
+</div>
+<div class="app">
+  <aside class="side" id="side">
+    <div class="brand"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-label="Estância 78"><path d="M32 3.5 55.5 11v19.5C55.5 46 45 56.5 32 60.5 19 56.5 8.5 46 8.5 30.5V11Z" fill="#1f3d2b" stroke="#c9a54a" stroke-width="2.4"/><path d="M14.5 15.5c1.4 5.6 5.6 8.6 11 8.9l-1.2 3.4c-6.4-.8-10.6-5.6-9.8-12.3Z" fill="#c9a54a"/><path d="M49.5 15.5c-1.4 5.6-5.6 8.6-11 8.9l1.2 3.4c6.4-.8 10.6-5.6 9.8-12.3Z" fill="#c9a54a"/><path d="M23.5 24.5h17c.8 0 1.4.7 1.3 1.5l-1.6 7.5c-.3 1.5-1 2.8-2 3.9L34.4 41c-1.3 1.4-3.5 1.4-4.8 0l-3.8-3.6c-1-1.1-1.7-2.4-2-3.9L22.2 26c-.1-.8.5-1.5 1.3-1.5Z" fill="none" stroke="#e2c77a" stroke-width="1.6"/><text x="32" y="53.5" text-anchor="middle" font-family="Barlow Condensed,Arial Narrow,sans-serif" font-weight="700" font-size="14" fill="#fff" letter-spacing="1">78</text><path d="M17 47.5h6M41 47.5h6" stroke="#8a9a52" stroke-width="1.4" stroke-linecap="round"/></svg><div><div class="t1">ESTÂNCIA 78</div><div class="t2">GESTÃO RURAL</div></div></div>
+    <nav class="menu" id="menu"></nav>
+    <div class="foot"><b>Dados. Manejo. Resultado.</b><br><span id="foot-ver">Etapa 1</span></div>
+  </aside>
+  <div class="scrim" id="scrim"></div>
+  <div class="main">
+    <header class="top">
+      <button class="burger" id="burger" aria-label="Menu"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+      <div><h1 id="ptitle">Dashboard</h1><div class="sub" id="psub"></div></div>
+      <div class="usr"><span class="dbstate" id="dbstate">conectando…</span><span class="nm" id="uname"></span><div class="av" id="uav">E</div></div>
+    </header>
+    <main class="content" id="main"></main>
+  </div>
+</div>
+<div id="modal-root"></div>
+<div class="toasts" id="toasts"></div>
+<script>
+'use strict';
+/* =====================================================================
+   ESTÂNCIA 78 – GESTÃO RURAL · núcleo
+   Banco: coleções no db do Claude (somente proprietário/editores)
+     lancamentos · contas · animais · lotes · movimentacoes · ovos · auditoria · config/geral
+   ===================================================================== */
+
+/* ---------- Constantes de domínio ---------- */
+const ESPECIES = {
+  bovino:  { nome:'Bovinos',  sing:'Bovino',  atividade:'bovinos',  cor:'var(--c-bov)' },
+  suino:   { nome:'Suínos',   sing:'Suíno',   atividade:'suinos',   cor:'var(--c-sui)' },
+  galinha: { nome:'Galinhas', sing:'Galinha', atividade:'galinhas', cor:'var(--c-gal)' }
+};
+const ATIVIDADES = { bovinos:'Bovinos', suinos:'Suínos', galinhas:'Galinhas', geral:'Despesas Gerais' };
+const ATV_ESPECIE = { bovinos:'bovino', suinos:'suino', galinhas:'galinha' };
+const CORES = { bovinos:'#1a7f4b', suinos:'#c4462e', galinhas:'#2d6cc8', geral:'#a8780a', receita:'#1a7f4b', despesa:'#c4462e', neutro:'#6b7a3a' };
+
+const CLASSIF = {
+  operacional:'Despesa operacional',
+  geral:'Despesa geral',
+  investimento:'Investimento em infraestrutura',
+  patrimonio:'Aquisição de patrimônio',
+  manutencao:'Manutenção e conservação'
+};
+const CLASSIF_ECON = ['operacional','geral','manutencao'];   // entram no resultado econômico
+const CLASSIF_INV  = ['investimento','patrimonio'];          // tratados como investimento
+
+const CAT_RECEITA = {
+  bovinos:['Venda de bovinos','Outras receitas'],
+  suinos:['Venda de suínos','Venda de leitões','Venda de leitões desmamados','Venda de porcos inteiros','Venda de matrizes/reprodutores','Venda de esterco','Outras receitas da suinocultura'],
+  galinhas:['Venda de galinhas','Venda de ovos','Venda de esterco','Outras receitas'],
+  geral:['Venda de outros produtos','Venda de esterco','Outras receitas']
+};
+const CAT_DESP_ANIMAL = ['Ração','Milho','Sal mineral','Suplementos','Medicamentos','Vacinas','Vermífugos','Alimentação','Mão de obra','Combustível','Transporte','Manutenção operacional','Outros custos'];
+const COMPRA_CAT = { bovinos:'Compra de bovinos', suinos:'Compra de suínos', galinhas:'Compra de galinhas' };
+
+const GRUPOS_GERAIS = {
+  cercas:{ nome:'Cercas e estruturas', classif:'investimento', itens:['Arame','Mourões','Palanques','Grampos','Telas','Porteiras','Colchetes','Construção de cercas','Manutenção de cercas','Divisórias de pastagem','Currais','Bebedouros','Cochos','Encanamentos','Instalações hidráulicas'] },
+  casa:{ nome:'Casa', classif:'investimento', itens:['Construção da casa','Reforma','Cimento','Areia','Pedra','Tijolos','Telhado','Madeira','Pintura','Instalação elétrica','Instalação hidráulica','Móveis','Eletrodomésticos','Utensílios','Manutenção da residência','Limpeza'] },
+  instalacoes:{ nome:'Instalações rurais', classif:'investimento', itens:['Construção de galinheiros','Construção de chiqueiros','Construção de galpões','Construção de depósitos','Reforma de instalações','Equipamentos','Máquinas','Ferramentas','Sistemas de água','Sistemas elétricos'] },
+  gerais:{ nome:'Despesas gerais', classif:'geral', itens:['Energia elétrica','Água','Internet','Combustível','Roçada','Limpeza do terreno','Jardinagem','Mão de obra geral','Serviços terceirizados','Manutenção de veículos','Impostos','Taxas','Documentação','Outras despesas'] }
+};
+const ITENS_MANUT = ['Manutenção de cercas','Reforma','Manutenção da residência','Reforma de instalações','Manutenção de veículos','Limpeza'];
+const ITENS_PATRIM = ['Móveis','Eletrodomésticos','Equipamentos','Máquinas','Ferramentas'];
+
+const CAT_ANIMAL = {
+  bovino:['Bezerro','Bezerra','Garrote','Novilha','Vaca','Touro','Boi','Boi de engorda'],
+  suino:['Leitão recém-nascido','Leitão lactente','Leitão desmamado','Leitão para recria','Suíno em crescimento','Suíno para engorda','Porco terminado','Matriz','Leitoa','Cachaço / reprodutor'],
+  galinha:['Caipira','Poedeira','Frango de corte','Pintinhos','Galos / reprodutores']
+};
+const PRODUTOS_VENDA = {
+  bovino:[['Bovino por cabeça','Venda de bovinos'],['Bovino por kg (vivo)','Venda de bovinos'],['Boi gordo','Venda de bovinos'],['Vaca','Venda de bovinos'],['Bezerro(a)','Venda de bovinos'],['Novilha','Venda de bovinos'],['Touro','Venda de bovinos']],
+  suino:[['Leitão recém-nascido','Venda de leitões'],['Leitão lactente','Venda de leitões'],['Leitão desmamado','Venda de leitões desmamados'],['Leitão para recria','Venda de leitões'],['Leitão para engorda','Venda de leitões'],['Porco inteiro','Venda de porcos inteiros'],['Porco para abate','Venda de porcos inteiros'],['Porco vivo por kg','Venda de porcos inteiros'],['Porco por cabeça','Venda de porcos inteiros'],['Porca','Venda de suínos'],['Matriz reprodutora','Venda de matrizes/reprodutores'],['Leitoa para reprodução','Venda de matrizes/reprodutores'],['Cachaço','Venda de matrizes/reprodutores']],
+  galinha:[['Galinha viva','Venda de galinhas'],['Galinha para abate','Venda de galinhas'],['Frango','Venda de galinhas'],['Poedeira','Venda de galinhas'],['Pintinhos','Venda de galinhas'],['Galo','Venda de galinhas']]
+};
+const FORMAS = ['Dinheiro','PIX','Transferência','Cartão de débito','Cartão de crédito','Boleto','Cheque','Prazo / fiado','Outra'];
+
+const MOV_NOMES = {
+  compra:'Compra', venda:'Venda', nascimento:'Nascimento', mortalidade:'Mortalidade', entrada:'Entrada',
+  saida:'Saída', descarte:'Descarte', ajuste:'Ajuste de inventário', transferencia:'Transferência de lote',
+  local:'Transferência de local', categoria:'Mudança de categoria', desmame:'Desmame', pesagem:'Pesagem'
+};
+
+/* ---------- Utilidades ---------- */
+const $ = (s, el=document) => el.querySelector(s);
+const $$ = (s, el=document) => [...el.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const R = v => (Number(v)||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const R0 = v => (Number(v)||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0});
+const N = (v,d=0) => (Number(v)||0).toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});
+const round2 = v => Math.round((Number(v)||0)*100)/100;
+function num(v){
+  if (v === null || v === undefined) return 0;
+  if (typeof v === 'number') return isFinite(v) ? v : 0;
+  let s = String(v).trim().replace(/R\$\s?/,'').replace(/\s/g,'');
+  if (!s) return 0;
+  if (s.includes(',')) s = s.replace(/\./g,'').replace(',','.');
+  const n = parseFloat(s); return isFinite(n) ? n : 0;
+}
+const numStr = v => (v === '' || v === null || v === undefined || Number(v) === 0) ? '' : String(round2(v)).replace('.',',');
+function hoje(){ const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); }
+function addMeses(iso, n){
+  const [y,m,d] = iso.split('-').map(Number);
+  const t = new Date(Date.UTC(y, m-1+n, 1));
+  const last = new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth()+1, 0)).getUTCDate();
+  t.setUTCDate(Math.min(d,last)); return t.toISOString().slice(0,10);
+}
+const D = iso => iso ? iso.slice(0,10).split('-').reverse().join('/') : '';
+const mesIni = (iso=hoje()) => iso.slice(0,7)+'-01';
+function mesFim(iso=hoje()){ const [y,m]=iso.split('-').map(Number); return new Date(Date.UTC(y,m,0)).toISOString().slice(0,10); }
+const MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+const mesLabel = ym => MESES[+ym.slice(5,7)-1]+'/'+ym.slice(2,4);
+const inRange = (d, ini, fim) => !!d && (!ini || d >= ini) && (!fim || d <= fim);
+function diasEntre(a,b){ return Math.round((Date.parse(b)-Date.parse(a))/86400000); }
+function idadeTxt(nasc){
+  if (!nasc) return '—'; const d = diasEntre(nasc, hoje()); if (d < 0) return '—';
+  if (d < 60) return d+' dias'; const m = Math.floor(d/30.44); if (m < 24) return m+' meses';
+  const a = Math.floor(m/12), r = m%12; return a+' a'+(r?' '+r+' m':'');
+}
+const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+const sum = (arr, f) => arr.reduce((s,x)=>s+(Number(f(x))||0),0);
+
+/* ---------- Estado ---------- */
+const COLS = ['lancamentos','contas','animais','lotes','movimentacoes','ovos'];
+const CFG_PADRAO = { catReceitaExtra:[], catDespesaExtra:[], catAnimalExtra:{bovino:[],suino:[],galinha:[]}, valorEstimado:{bovino:3500,suino:600,galinha:40}, locais:[] };
+const S = {
+  db:null, user:null, downloads:null, uid:null, nome:'',
+  data:{ lancamentos:[], contas:[], animais:[], lotes:[], movimentacoes:[], ovos:[], auditoria:[] },
+  loaded:new Set(), cfg:JSON.parse(JSON.stringify(CFG_PADRAO)), cfgExiste:false,
+  ui:{}, page:'dashboard', charts:[], podeEscrever:true
+};
+const A = col => (S.data[col]||[]).filter(d => !d.excluido);
+const byId = (col, id) => (S.data[col]||[]).find(d => d.id === id);
+function cfg(){ return S.cfg; }
+function catsAnimal(esp){ return [...CAT_ANIMAL[esp], ...((S.cfg.catAnimalExtra||{})[esp]||[])]; }
+function catsReceita(atv){ return [...(CAT_RECEITA[atv]||CAT_RECEITA.geral), ...(S.cfg.catReceitaExtra||[])]; }
+function catsDespesa(atv){
+  if (atv === 'geral') return null; // usa grupos
+  return [COMPRA_CAT[atv], ...CAT_DESP_ANIMAL, ...(S.cfg.catDespesaExtra||[])];
+}
+function uiGet(k, def){ return (k in S.ui) ? S.ui[k] : def; }
+
+/* ---------- Banco de dados ---------- */
+async function waitClaude(ms=10000){
+  const t0 = Date.now();
+  while (!(window.claude && typeof window.claude.use === 'function')) {
+    if (Date.now()-t0 > ms) return null;
+    await new Promise(r => setTimeout(r, 100));
+  }
+  return window.claude;
+}
+function colRef(c){ return S.db.collection(c); }
+function stamp(){ return new Date().toISOString(); }
+function novoId(c){ return colRef(c).doc().id; }
+
+async function dbSet(c, id, data){
+  const body = { ...data, excluido:false, criadoEm:stamp(), criadoPor:S.uid||null, atualizadoEm:stamp() };
+  await retry(() => colRef(c).doc(id).set(clean(body)));
+  return id;
+}
+async function dbUpd(c, id, data){
+  await retry(() => colRef(c).doc(id).update(clean({ ...data, atualizadoEm:stamp(), atualizadoPor:S.uid||null })));
+}
+function clean(o){ // remove undefined (JSON puro)
+  return JSON.parse(JSON.stringify(o, (k,v) => v === undefined ? null : v));
+}
+async function retry(fn){
+  try { return await fn(); }
+  catch(e){
+    if (e && e.code === 'unavailable') { await new Promise(r=>setTimeout(r, 400+Math.random()*600)); return await fn(); }
+    throw traduzErro(e);
+  }
+}
+function traduzErro(e){
+  const c = e && e.code;
+  const m = {
+    invalid_argument:'O banco recusou a gravação (sem permissão de edição ou dado inválido).',
+    quota_exceeded:'O limite de armazenamento do banco foi atingido. Exporte um backup e remova registros antigos.',
+    resource_exhausted:'Muitas operações seguidas. Aguarde alguns segundos e tente de novo.',
+    revoked:'O acesso a este sistema foi alterado. Recarregue a página.',
+    unavailable:'Banco temporariamente indisponível. Tente novamente.'
+  }[c];
+  const err = new Error(m || (e && e.message) || String(e)); err.code = c; return err;
+}
+async function audit(acao, colecao, docId, resumo){
+  try { await colRef('auditoria').doc(novoId('auditoria')).set(clean({ quando:stamp(), quem:S.uid, quemNome:S.nome||'', acao, colecao, docId, resumo })); }
+  catch(e){ console.warn('auditoria', e); }
+}
+
+async function initDB(){
+  const claude = await waitClaude();
+  if (!claude) return semBanco('Abra este sistema pelo Claude (navegador ou app) com a sua conta para acessar o banco de dados.');
+  S.db = await claude.use('db');
+  S.user = await claude.use('user');
+  claude.use('downloads').then(d => S.downloads = d).catch(()=>{});
+  if (!S.db) return semBanco('Entre na sua conta do Claude para acessar o banco de dados da Estância 78.');
+  if (S.user) {
+    try { S.uid = await S.user.id(); const me = await S.user.me(); S.nome = (me && me.name) || ''; } catch(e){}
+    try { const w = await S.user.can('data.write'); if (w === false) S.podeEscrever = false; } catch(e){}
+  }
+  $('#uname').textContent = S.nome || 'Proprietário';
+  $('#uav').textContent = (S.nome || 'E').trim().charAt(0).toUpperCase();
+  let timer = setTimeout(() => setDbState('warn','sem resposta do banco'), 10000);
+  const pend = new Set([...COLS, 'config', 'auditoria']);
+  const done = (k, fromCache) => { if (!fromCache) { pend.delete(k); S.loaded.add(k); } if (!pend.size) { clearTimeout(timer); setDbState('ok','sincronizado'); } hideSplash(); scheduleRender(); };
+  for (const c of COLS) {
+    colRef(c).onSnapshot(snap => {
+      S.data[c] = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+      done(c, snap.metadata && snap.metadata.fromCache);
+    }, err => { clearTimeout(timer); setDbState('warn','erro: '+(err.code||'')); console.error(c, err); hideSplash(); });
+  }
+  colRef('auditoria').orderBy('quando','desc').limit(300).onSnapshot(snap => {
+    S.data.auditoria = snap.docs.map(d => ({ id:d.id, ...d.data() })); done('auditoria', snap.metadata && snap.metadata.fromCache);
+  }, err => console.error('auditoria', err));
+  S.db.doc('config/geral').onSnapshot(snap => {
+    S.cfgExiste = !!snap.exists;
+    const d = snap.exists ? snap.data() : {};
+    S.cfg = { ...JSON.parse(JSON.stringify(CFG_PADRAO)), ...d, catAnimalExtra:{ ...CFG_PADRAO.catAnimalExtra, ...(d.catAnimalExtra||{}) }, valorEstimado:{ ...CFG_PADRAO.valorEstimado, ...(d.valorEstimado||{}) } };
+    done('config', snap.metadata && snap.metadata.fromCache);
+  }, err => console.error('config', err));
+  setTimeout(hideSplash, 2500);
+}
+async function salvarCfg(patch){
+  const novo = clean({ ...S.cfg, ...patch, atualizadoEm:stamp() });
+  await retry(() => S.db.doc('config/geral').set(novo));
+}
+function setDbState(cls, txt){ const el = $('#dbstate'); el.className = 'dbstate '+cls; el.textContent = txt; }
+function hideSplash(){ const s = $('#splash'); if (s) s.remove(); }
+function semBanco(msg){ $('#splash-msg').textContent = msg; setDbState('warn','sem banco'); }
+
+/* ---------- Render loop ---------- */
+let rq = null;
+function scheduleRender(){ if (rq) return; rq = setTimeout(() => { rq = null; render(); }, 60); }
+function render(){
+  const act = document.activeElement;
+  const key = act && act.closest && act.closest('#main') && act.dataset && (act.dataset.filter || act.id);
+  const selStart = key && act.selectionStart;
+  const pg = PAGES[S.page] || PAGES.dashboard;
+  $('#ptitle').textContent = pg.titulo;
+  $('#psub').textContent = pg.sub || '';
+  renderMenu();
+  const html = pg.render();
+  if (html === S.lastHtml && S.lastPage === S.page && !S.forceRender) return;  // nada mudou na tela: não recria o DOM
+  S.lastHtml = html; S.lastPage = S.page; S.forceRender = false;
+  S.charts.forEach(c => { try { c.destroy(); } catch(e){} }); S.charts = [];
+  $('#main').innerHTML = html;
+  if (pg.after) pg.after();
+  if (key) {
+    const el = $(`#main [data-filter="${key}"]`) || document.getElementById(key);
+    if (el) { el.focus(); try { if (selStart != null) el.setSelectionRange(selStart, selStart); } catch(e){} }
+  }
+}
+
+/* ---------- Ícones ---------- */
+const IC = {
+  dashboard:'<path d="M3 13h8V3H3zM13 21h8V11h-8zM3 21h8v-6H3zM13 3v6h8V3z"/>',
+  financeiro:'<path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',
+  bovinos:'<path d="M4 5c1 3 3 4 6 4h4c3 0 5-1 6-4M8 9v6a4 4 0 0 0 8 0V9M10 19h4"/>',
+  suinos:'<path d="M4 13a7 6 0 1 0 14 0 7 6 0 0 0-14 0zM18 12h2.5v3H18M8 7l-1-3 3 2M9 18v3M15 18v3"/>',
+  galinhas:'<path d="M8 20h8M12 20v-3M6 10a6 6 0 0 0 12 1l3-1-3-2a5 5 0 0 0-9-2"/><circle cx="14" cy="8" r=".6"/>',
+  manejo:'<path d="M9 2h6M12 2v4M5 10l7-4 7 4v10H5z"/><path d="M12 12v5M9.5 14.5h5"/>',
+  reproducao:'<circle cx="9" cy="9" r="5"/><circle cx="15" cy="15" r="5"/>',
+  calendario:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+  estoque:'<path d="M3 7l9-4 9 4v10l-9 4-9-4zM3 7l9 4 9-4M12 11v10"/>',
+  custos:'<path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/>',
+  'despesas-gerais':'<path d="M3 21V10l9-6 9 6v11M9 21v-6h6v6"/>',
+  patrimonio:'<path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"/>',
+  relatorios:'<path d="M6 2h9l5 5v15H6zM14 2v6h6M9 13h8M9 17h6"/>',
+  configuracoes:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>'
+};
+const MENU = [
+  ['dashboard','Dashboard'],['financeiro','Financeiro'],['bovinos','Bovinos'],['suinos','Suínos'],['galinhas','Galinhas'],
+  ['manejo','Manejo','Etapa 2'],['reproducao','Reprodução','Etapa 2'],['calendario','Calendário','Etapa 2'],['estoque','Estoque','Etapa 2'],
+  ['custos','Custos','Etapa 3'],['despesas-gerais','Despesas Gerais'],['patrimonio','Patrimônio','Etapa 3'],['relatorios','Relatórios','Etapa 3'],['configuracoes','Configurações']
+];
+function renderMenu(){
+  if (S.menuPage === S.page) return; S.menuPage = S.page;
+  $('#menu').innerHTML = MENU.map(([k,t,tag]) =>
+    `<a href="#${k}" class="${S.page===k?'on':''}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${IC[k]}</svg>${t}${tag?`<span class="tag">${tag}</span>`:''}</a>`).join('');
+}
+
+/* ---------- Modal / diálogos / toast ---------- */
+function modal({ title, html, submit='Salvar', onSubmit, onInit, wide=false, extraFooter='' }){
+  const id = 'm'+uid();
+  $('#modal-root').insertAdjacentHTML('beforeend',
+    `<div class="mback" id="${id}"><div class="modal ${wide?'wide':''}" role="dialog" aria-modal="true">
+      <header><h3>${esc(title)}</h3><button type="button" class="x" data-close aria-label="Fechar">×</button></header>
+      <form novalidate autocomplete="off"><div class="mbody"><div class="ferr" hidden></div>${html}</div>
+      <footer>${extraFooter}${onSubmit ? `<button type="button" class="btn ghost" data-close>Cancelar</button><button class="btn primary" type="submit">${esc(submit)}</button>` : `<button type="button" class="btn ghost" data-close>Fechar</button>`}</footer>
+      </form></div></div>`);
+  const el = document.getElementById(id), form = el.querySelector('form');
+  const close = () => el.remove();
+  el.addEventListener('mousedown', e => { if (e.target === el) el._down = true; });
+  el.addEventListener('click', e => {
+    if (e.target.closest('[data-close]') || (e.target === el && el._down)) close();
+    el._down = false;
+  });
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    if (!onSubmit) return;
+    const btn = form.querySelector('button[type=submit]');
+    if (btn.disabled) return;           // evita duplo clique / duplicidade
+    const errBox = form.querySelector('.ferr'); errBox.hidden = true;
+    const fd = {}; new FormData(form).forEach((v,k) => { fd[k] = v; });
+    btn.disabled = true; btn.textContent = 'Salvando…';
+    try { const r = await onSubmit(fd, form); if (r !== false) close(); }
+    catch(err){ errBox.textContent = err.message || String(err); errBox.hidden = false; errBox.scrollIntoView({block:'nearest'}); }
+    finally { if (document.body.contains(btn)) { btn.disabled = false; btn.textContent = submit; } }
+  });
+  if (onInit) onInit(form, el, close);
+  const first = form.querySelector('input:not([type=hidden]):not([readonly]),select,textarea');
+  if (first && window.innerWidth > 860) first.focus();
+  return { el, form, close };
+}
+function confirmar(msg, ok='Confirmar', perigo=true){
+  return new Promise(res => {
+    let resolved = false;
+    const m = modal({ title:'Confirmação', html:`<p style="margin:0;line-height:1.5">${msg}</p>`, submit:ok,
+      onSubmit: async () => { resolved = true; res(true); } });
+    if (perigo) m.form.querySelector('button[type=submit]').className = 'btn danger';
+    new MutationObserver((_, obs) => { if (!document.body.contains(m.el)) { obs.disconnect(); if (!resolved) res(false); } })
+      .observe($('#modal-root'), { childList:true });
+  });
+}
+function toast(msg, err=false){
+  const t = document.createElement('div'); t.className = 'toast'+(err?' err':''); t.textContent = msg;
+  $('#toasts').appendChild(t); setTimeout(() => t.remove(), err ? 5000 : 2600);
+}
+function falha(e){ console.error(e); toast(e.message || String(e), true); }
+function exigeEscrita(){ if (!S.podeEscrever) throw new Error('Seu acesso a este sistema é somente leitura.'); if (!S.db) throw new Error('Banco de dados indisponível.'); }
+
+/* ---------- Campos de formulário ---------- */
+function opts(list, val, vazio){
+  return (vazio !== undefined ? `<option value="">${esc(vazio)}</option>` : '') +
+    list.map(o => { const [v,t] = Array.isArray(o) ? o : [o,o]; return `<option value="${esc(v)}" ${String(v)===String(val??'')?'selected':''}>${esc(t)}</option>`; }).join('');
+}
+const fSel = (name, label, list, val, extra='', vazio) => `<label class="fld ${extra.includes('full')?'full':''}"><span>${label}</span><select name="${name}" ${extra.replace('full','')}>${opts(list,val,vazio)}</select></label>`;
+const fInp = (name, label, val='', extra='', type='text') => `<label class="fld ${extra.includes('full')?'full':''}"><span>${label}</span><input type="${type}" name="${name}" value="${esc(val)}" ${extra.replace('full','')}></label>`;
+const fNum = (name, label, val='', extra='') => fInp(name, label, numStr(val) || (typeof val==='string'?val:''), 'inputmode="decimal" '+extra);
+const fDate = (name, label, val=hoje(), extra='') => fInp(name, label, val, extra, 'date');
+const fTxt = (name, label, val='') => `<label class="fld full"><span>${label}</span><textarea name="${name}">${esc(val)}</textarea></label>`;
+function contaOpts(){ const cs = A('contas'); return cs.length ? cs.map(c => [c.id, c.nome]) : [['','(cadastre uma conta em Financeiro › Contas)']]; }
+function contaPadrao(){ const cs = A('contas'); return (cs.find(c => c.padrao) || cs[0] || {}).id || ''; }
+function reqTxt(v, nome){ if (!String(v||'').trim()) throw new Error(`Informe ${nome}.`); return String(v).trim(); }
+function reqData(v, nome='a data'){ if (!/^\d{4}-\d{2}-\d{2}$/.test(v||'')) throw new Error(`Informe ${nome}.`); return v; }
+function reqPos(v, nome){ const n = num(v); if (!(n > 0)) throw new Error(`Informe ${nome} (maior que zero).`); return n; }
+
+/* ---------- Exportação ---------- */
+async function salvarArquivo(nome, data){
+  if (!S.downloads) { toast('Download indisponível nesta visualização.', true); return; }
+  try { await S.downloads.save({ filename:nome, data }); toast('Arquivo pronto.'); }
+  catch(e){ if (e && e.code === 'declined') return; toast('Não foi possível baixar: '+(e.message||e.code), true); }
+}
+async function exportarXLSX(nome, titulo, cab, linhas){
+  if (!window.XLSX) {
+    const csv = [cab, ...linhas].map(r => r.map(v => `"${String(v??'').replace(/"/g,'""')}"`).join(';')).join('\r\n');
+    return salvarArquivo(nome.replace(/\.xlsx$/,'.csv'), '﻿'+csv);
+  }
+  const aoa = [['ESTÂNCIA 78 – GESTÃO RURAL'], [titulo], ['Gerado em '+D(hoje())+' · Dados. Manejo. Resultado.'], [], cab, ...linhas];
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = cab.map((c,i) => ({ wch: Math.min(40, Math.max(10, String(c).length+2, ...linhas.slice(0,200).map(l => String(l[i]??'').length+1))) }));
+  ws['!merges'] = [{s:{r:0,c:0},e:{r:0,c:Math.max(0,cab.length-1)}},{s:{r:1,c:0},e:{r:1,c:Math.max(0,cab.length-1)}}];
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, titulo.slice(0,31).replace(/[\\/?*[\]:]/g,''));
+  const buf = XLSX.write(wb, { bookType:'xlsx', type:'array' });
+  return salvarArquivo(nome, new Blob([buf]));
+}
+
+/* ---------- Componentes ---------- */
+const kpi = (l, v, s='', cls='') => `<div class="kpi ${cls}"><div class="l">${l}</div><div class="v" title="${esc(String(v).replace(/<[^>]+>/g,''))}">${v}</div>${s?`<div class="s">${s}</div>`:''}</div>`;
+function tabs(key, list, def){
+  const cur = uiGet(key, def);
+  return `<nav class="tabs">${list.map(([k,t]) => `<a data-act="tab" data-key="${key}" data-val="${k}" class="${cur===k?'on':''}">${t}</a>`).join('')}</nav>`;
+}
+function filtroPeriodo(prefix){
+  const ini = uiGet(prefix+'Ini', mesIni()), fim = uiGet(prefix+'Fim', mesFim());
+  return `<label class="fld"><span>De</span><input type="date" data-filter="${prefix}Ini" value="${ini}"></label>
+    <label class="fld"><span>Até</span><input type="date" data-filter="${prefix}Fim" value="${fim}"></label>
+    <div class="chips" style="align-self:center">
+      <button class="chip" data-act="periodo" data-p="${prefix}" data-v="mes">Mês</button>
+      <button class="chip" data-act="periodo" data-p="${prefix}" data-v="mesant">Mês anterior</button>
+      <button class="chip" data-act="periodo" data-p="${prefix}" data-v="ano">Ano</button>
+      <button class="chip" data-act="periodo" data-p="${prefix}" data-v="tudo">Tudo</button></div>`;
+}
+function periodo(prefix){ return [uiGet(prefix+'Ini', mesIni()), uiGet(prefix+'Fim', mesFim())]; }
+function vazio(t, s=''){ return `<div class="empty"><b>${t}</b>${s}</div>`; }
+function badgeStatus(st){
+  const m = { pago:['b-ok','Pago'], recebido:['b-ok','Recebido'], parcial:['b-par','Parcial'], pendente:['b-pend','Pendente'], vencido:['b-err','Vencido'] }[st] || ['b-mut',st];
+  return `<span class="badge ${m[0]}">${m[1]}</span>`;
+}
+function dotAtv(atv){ return `<span class="dot" style="background:${CORES[atv]||'#999'}"></span>${esc(ATIVIDADES[atv]||atv||'—')}`; }
+
+/* =====================================================================
+   Cálculos financeiros + módulo Financeiro
+   ===================================================================== */
+function pagoDe(l){ return round2(sum(l.pagamentos||[], p => p.valor)); }
+function restante(l){ return round2((+l.valor||0) - pagoDe(l)); }
+function statusL(l){
+  const p = pagoDe(l), v = +l.valor||0;
+  if (v > 0 && p >= v - 0.005) return l.tipo === 'receita' ? 'recebido' : 'pago';
+  if (p > 0) return 'parcial';
+  if ((l.vencimento || l.data) < hoje()) return 'vencido';
+  return 'pendente';
+}
+const quitado = l => ['pago','recebido'].includes(statusL(l));
+function saldoConta(c){
+  let s = +c.saldoInicial || 0;
+  for (const l of A('lancamentos')) for (const p of (l.pagamentos||[])) if (p.contaId === c.id) s += (l.tipo === 'receita' ? 1 : -1) * (+p.valor||0);
+  return round2(s);
+}
+const saldoTotal = () => round2(sum(A('contas'), saldoConta));
+// pagamentos efetivos (caixa) num período
+function caixa(ini, fim, filtro=()=>true){
+  let ent = 0, sai = 0;
+  for (const l of A('lancamentos')) { if (!filtro(l)) continue;
+    for (const p of (l.pagamentos||[])) if (inRange(p.data, ini, fim)) { if (l.tipo === 'receita') ent += +p.valor||0; else sai += +p.valor||0; } }
+  return { ent:round2(ent), sai:round2(sai), liq:round2(ent-sai) };
+}
+// Resultado econômico (competência) — não mistura investimentos nem compras de animais
+function econ(ini, fim, atv){
+  const L = A('lancamentos').filter(l => inRange(l.data, ini, fim) && (!atv || l.atividade === atv));
+  const rec = sum(L.filter(l => l.tipo==='receita'), l => l.valor);
+  const cmv = sum(L.filter(l => l.tipo==='receita'), l => l.custoVendido);
+  const D_ = L.filter(l => l.tipo==='despesa');
+  const oper = sum(D_.filter(l => l.classificacao==='operacional'), l => l.valor);
+  const ger  = sum(D_.filter(l => l.classificacao==='geral' || l.classificacao==='manutencao'), l => l.valor);
+  const inv  = sum(D_.filter(l => CLASSIF_INV.includes(l.classificacao)), l => l.valor);
+  const desp = oper + ger;
+  return { rec:round2(rec), cmv:round2(cmv), oper:round2(oper), ger:round2(ger), inv:round2(inv), desp:round2(desp), res:round2(rec - cmv - oper - ger) };
+}
+function abertos(tipo){ return A('lancamentos').filter(l => l.tipo === tipo && !quitado(l)); }
+
+function classifPadrao(atv, cat, grupo){
+  if (atv === 'geral') {
+    if (ITENS_MANUT.includes(cat)) return 'manutencao';
+    if (ITENS_PATRIM.includes(cat)) return 'patrimonio';
+    return (GRUPOS_GERAIS[grupo]||{}).classif || 'geral';
+  }
+  if (Object.values(COMPRA_CAT).includes(cat)) return 'patrimonio';
+  return 'operacional';
+}
+
+/* ---------- Criação de lançamentos (usado por todos os módulos) ---------- */
+// Cria um lançamento. pagoAgora: valor já pago/recebido na data, na conta informada.
+async function criarLanc(d, { pagoAgora=0, dataPg, contaId, id } = {}){
+  const lid = id || novoId('lancamentos');
+  const pagamentos = pagoAgora > 0 ? [{ id:uid(), data:dataPg || d.data, valor:round2(pagoAgora), contaId:contaId || d.contaId || '' }] : [];
+  const body = { tipo:d.tipo, data:d.data, atividade:d.atividade, categoria:d.categoria, classificacao: d.tipo==='despesa' ? (d.classificacao || classifPadrao(d.atividade, d.categoria, d.grupo)) : null,
+    grupo:d.grupo||null, local:d.local||'', descricao:d.descricao||'', quantidade:d.quantidade||null, valorUnit:d.valorUnit||null,
+    valor:round2(d.valor), forma:d.forma||'', contaId:d.contaId||'', vencimento:d.vencimento||d.data, contraparte:d.contraparte||'',
+    comprovante:d.comprovante||'', obs:d.obs||'', origem:d.origem||'manual', refId:d.refId||null, custoVendido:d.custoVendido!=null?round2(d.custoVendido):null,
+    grupoParcela:d.grupoParcela||null, parcela:d.parcela||null, pagamentos };
+  await dbSet('lancamentos', lid, body);
+  await audit('criar', 'lancamentos', lid, `${body.tipo} ${body.categoria} ${R(body.valor)}`);
+  return lid;
+}
+function duplicado(d){
+  return A('lancamentos').find(l => l.tipo === d.tipo && l.data === d.data && Math.abs((+l.valor||0) - d.valor) < 0.005 &&
+    (l.descricao||'').trim().toLowerCase() === (d.descricao||'').trim().toLowerCase() && l.categoria === d.categoria);
+}
+
+/* ---------- Formulário de lançamento ---------- */
+function abrirLancamento(preset = {}, edit = null){
+  const L = edit || {};
+  const tipo0 = L.tipo || preset.tipo || 'despesa';
+  const atv0 = L.atividade || preset.atividade || 'bovinos';
+  const auto = edit && edit.origem && edit.origem !== 'manual';
+  const html = `
+    ${auto ? `<div class="note" style="margin-bottom:12px">Lançamento gerado automaticamente por ${esc(edit.origem)}. Valor, tipo e atividade são definidos pela movimentação de origem — para alterar, estorne a movimentação.</div>` : ''}
+    <div class="fg">
+      <div class="fld full"><span>Tipo</span><div class="toggle">
+        <label><input type="radio" name="tipo" value="receita" ${tipo0==='receita'?'checked':''} ${auto?'disabled':''}><span>Receita</span></label>
+        <label><input type="radio" name="tipo" value="despesa" ${tipo0==='despesa'?'checked':''} ${auto?'disabled':''}><span>Despesa</span></label></div></div>
+      ${fDate('data','Data', L.data || preset.data || hoje())}
+      ${fSel('atividade','Atividade', Object.entries(ATIVIDADES), atv0, auto?'disabled':'')}
+      <label class="fld" data-w="grupo"><span>Grupo (Despesas Gerais)</span><select name="grupo"></select></label>
+      <label class="fld"><span>Categoria</span><select name="categoria"></select></label>
+      <label class="fld" data-w="classif"><span>Classificação</span><select name="classificacao">${opts(Object.entries(CLASSIF), L.classificacao)}</select></label>
+      <label class="fld" data-w="local"><span>Estrutura / local beneficiado</span><input name="local" list="dl-locais" value="${esc(L.local||'')}" placeholder="Ex.: Pasto 2, Casa sede"></label>
+      ${fInp('descricao','Descrição', L.descricao||preset.descricao||'', 'full')}
+      ${fNum('quantidade','Quantidade', L.quantidade||'')}
+      ${fNum('valorUnit','Valor unitário (R$)', L.valorUnit||'')}
+      ${fNum('valor','Valor total (R$)', L.valor||'', auto?'readonly':'')}
+      ${fSel('forma','Forma de pagamento', FORMAS, L.forma||'PIX')}
+      ${fSel('contaId','Conta financeira', contaOpts(), L.contaId||contaPadrao())}
+      ${fDate('vencimento','Vencimento', L.vencimento || L.data || hoje())}
+      ${fInp('contraparte','Fornecedor / cliente', L.contraparte||'')}
+      ${edit ? '' : fSel('situacao','Situação', [['quitado','Pago / recebido'],['pendente','Pendente (a pagar / receber)']], preset.situacao||'quitado')}
+      ${edit ? '' : `<label class="fld"><span>Parcelas</span><input name="parcelas" inputmode="numeric" value="1"></label>
+        <label class="fld"><span>Repetir mensalmente (meses)</span><input name="recorrente" inputmode="numeric" value="1"></label>`}
+      ${fInp('comprovante','Comprovante (nº da nota, recibo ou link)', L.comprovante||'', 'full')}
+      ${fTxt('obs','Observações', L.obs||'')}
+    </div>
+    <datalist id="dl-locais">${[...new Set([...(S.cfg.locais||[]), ...A('lancamentos').map(l=>l.local).filter(Boolean)])].map(x=>`<option value="${esc(x)}">`).join('')}</datalist>
+    <p class="small muted" style="margin:10px 0 0">Parcelas dividem o valor total em vencimentos mensais. Repetição cria o mesmo lançamento nos meses seguintes (ex.: energia).</p>`;
+  modal({ title: edit ? 'Editar lançamento' : 'Novo lançamento', html, submit: edit ? 'Salvar alterações' : 'Lançar',
+    onInit(form){
+      const f = n => form.elements[n];
+      const tipoAtual = () => auto ? edit.tipo : (form.querySelector('[name=tipo]:checked')||{}).value;
+      const atvAtual = () => auto ? edit.atividade : f('atividade').value;
+      function refresh(keepCat){
+        const tipo = tipoAtual(), atv = atvAtual();
+        const geral = atv === 'geral' && tipo === 'despesa';
+        form.querySelector('[data-w=grupo]').style.display = geral ? '' : 'none';
+        form.querySelector('[data-w=classif]').style.display = tipo === 'despesa' ? '' : 'none';
+        form.querySelector('[data-w=local]').style.display = tipo === 'despesa' ? '' : 'none';
+        let cats;
+        if (tipo === 'receita') cats = catsReceita(atv);
+        else if (geral) {
+          if (!f('grupo').options.length) f('grupo').innerHTML = opts(Object.entries(GRUPOS_GERAIS).map(([k,g])=>[k,g.nome]), L.grupo || preset.grupo || 'gerais');
+          cats = [...GRUPOS_GERAIS[f('grupo').value].itens, ...(S.cfg.catDespesaExtra||[])];
+        } else cats = catsDespesa(atv);
+        const cur = keepCat ? f('categoria').value : (L.categoria || preset.categoria);
+        if (cur && !cats.includes(cur)) cats = [cur, ...cats];
+        f('categoria').innerHTML = opts(cats, cur);
+        if (!keepCat && !L.classificacao) f('classificacao').value = classifPadrao(atv, f('categoria').value, f('grupo').value);
+      }
+      refresh(false);
+      form.addEventListener('change', e => {
+        const n = e.target.name;
+        if (n === 'tipo' || n === 'atividade') { f('grupo').innerHTML=''; refresh(false); f('classificacao').value = classifPadrao(atvAtual(), f('categoria').value, f('grupo').value); }
+        if (n === 'grupo') { refresh(false); f('classificacao').value = classifPadrao(atvAtual(), f('categoria').value, f('grupo').value); }
+        if (n === 'categoria') f('classificacao').value = classifPadrao(atvAtual(), f('categoria').value, f('grupo').value);
+        if (n === 'data' && !edit) f('vencimento').value = f('data').value;
+      });
+      form.addEventListener('input', e => {
+        if ((e.target.name === 'quantidade' || e.target.name === 'valorUnit') && !auto) {
+          const q = num(f('quantidade').value), u = num(f('valorUnit').value);
+          if (q > 0 && u > 0) f('valor').value = numStr(q*u);
+        }
+      });
+    },
+    async onSubmit(fd){
+      exigeEscrita();
+      const tipo = auto ? edit.tipo : fd.tipo, atividade = auto ? edit.atividade : fd.atividade;
+      const d = {
+        tipo, atividade, data:reqData(fd.data), categoria:reqTxt(fd.categoria,'a categoria'),
+        classificacao: tipo === 'despesa' ? fd.classificacao : null,
+        grupo: (tipo === 'despesa' && atividade === 'geral') ? fd.grupo : null,
+        local: tipo === 'despesa' ? (fd.local||'').trim() : '',
+        descricao:(fd.descricao||'').trim(), quantidade:num(fd.quantidade)||null, valorUnit:num(fd.valorUnit)||null,
+        valor: auto ? edit.valor : reqPos(fd.valor,'o valor total'), forma:fd.forma, contaId:fd.contaId,
+        vencimento: fd.vencimento || fd.data, contraparte:(fd.contraparte||'').trim(), comprovante:(fd.comprovante||'').trim(), obs:(fd.obs||'').trim()
+      };
+      if (!d.descricao) d.descricao = d.categoria;
+      if (edit) {
+        if (!auto && d.valor < pagoDe(edit) - 0.005) throw new Error(`O valor não pode ser menor que o já pago (${R(pagoDe(edit))}).`);
+        await dbUpd('lancamentos', edit.id, d);
+        await audit('editar', 'lancamentos', edit.id, `${d.categoria} ${R(d.valor)}`);
+        toast('Lançamento atualizado.'); return;
+      }
+      const quit = fd.situacao === 'quitado';
+      if (quit && !d.contaId) throw new Error('Cadastre uma conta financeira (Financeiro › Contas) para registrar o pagamento.');
+      const nParc = Math.max(1, Math.min(120, parseInt(fd.parcelas)||1));
+      const nRec  = Math.max(1, Math.min(60, parseInt(fd.recorrente)||1));
+      if (nParc > 1 && nRec > 1) throw new Error('Use parcelas OU repetição mensal, não os dois ao mesmo tempo.');
+      const dup = duplicado(d);
+      if (dup && !(await confirmar(`Já existe um lançamento igual em ${D(dup.data)} (${esc(dup.descricao)} · ${R(dup.valor)}). Lançar mesmo assim?`, 'Lançar mesmo assim', false))) return false;
+      if (nParc > 1) {
+        const gp = uid(), base = Math.floor(d.valor / nParc * 100) / 100;
+        for (let i = 0; i < nParc; i++) {
+          const v = i === nParc-1 ? round2(d.valor - base*(nParc-1)) : base;
+          const venc = addMeses(d.vencimento, i);
+          await criarLanc({ ...d, valor:v, vencimento:venc, grupoParcela:gp, parcela:`${i+1}/${nParc}`, descricao:`${d.descricao} (${i+1}/${nParc})` },
+            { pagoAgora: quit && i === 0 ? v : 0, contaId:d.contaId });
+        }
+        toast(`${nParc} parcelas lançadas.`);
+      } else if (nRec > 1) {
+        const gp = uid();
+        for (let i = 0; i < nRec; i++) {
+          const dt = addMeses(d.data, i);
+          await criarLanc({ ...d, data:dt, vencimento:addMeses(d.vencimento, i), grupoParcela:gp, parcela:`rec ${i+1}/${nRec}` },
+            { pagoAgora: quit && i === 0 ? d.valor : 0, contaId:d.contaId, dataPg:dt });
+        }
+        toast(`${nRec} lançamentos mensais criados.`);
+      } else {
+        await criarLanc(d, { pagoAgora: quit ? d.valor : 0, contaId:d.contaId });
+        toast('Lançamento registrado.');
+      }
+    }
+  });
+}
+
+function abrirPagamento(l){
+  const rest = restante(l), rec = l.tipo === 'receita';
+  const hist = (l.pagamentos||[]).map(p => `<tr><td>${D(p.data)}</td><td>${esc((byId('contas',p.contaId)||{}).nome||'—')}</td><td class="n">${R(p.valor)}</td><td class="n"><button type="button" class="ico" data-act="desfazPg" data-id="${l.id}" data-pg="${p.id}">desfazer</button></td></tr>`).join('');
+  modal({ title: rec ? 'Registrar recebimento' : 'Registrar pagamento', submit: rec ? 'Receber' : 'Pagar',
+    html: `<div class="dl"><div><span>Lançamento</span><b>${esc(l.descricao||l.categoria)}</b></div><div><span>Valor</span><b>${R(l.valor)}</b></div><div><span>Em aberto</span><b>${R(rest)}</b></div></div>
+      ${hist ? `<div class="tw" style="margin-bottom:14px"><table><thead><tr><th>Data</th><th>Conta</th><th class="n">Valor</th><th></th></tr></thead><tbody>${hist}</tbody></table></div>` : ''}
+      ${rest > 0 ? `<div class="fg">${fDate('data', 'Data')}${fNum('valor','Valor (R$)', rest)}${fSel('contaId','Conta', contaOpts(), l.contaId || contaPadrao())}${fSel('forma','Forma', FORMAS, l.forma||'PIX')}</div>
+      <p class="small muted">Para pagamento parcial, informe um valor menor que o saldo em aberto.</p>` : '<div class="note">Lançamento quitado.</div>'}`,
+    onSubmit: rest > 0 ? async fd => {
+      exigeEscrita();
+      const v = reqPos(fd.valor, 'o valor'); reqData(fd.data);
+      if (!fd.contaId) throw new Error('Selecione a conta.');
+      if (v > rest + 0.005) throw new Error(`Valor maior que o saldo em aberto (${R(rest)}).`);
+      const pgs = [ ...(l.pagamentos||[]), { id:uid(), data:fd.data, valor:round2(v), contaId:fd.contaId } ];
+      await dbUpd('lancamentos', l.id, { pagamentos:pgs, forma:fd.forma });
+      await audit(rec ? 'receber' : 'pagar', 'lancamentos', l.id, R(v));
+      toast(rec ? 'Recebimento registrado.' : 'Pagamento registrado.');
+    } : null });
+}
+
+async function excluirLanc(l){
+  if (l.origem && l.origem !== 'manual') { toast('Lançamento automático: estorne a movimentação de origem (venda/compra) no módulo do animal.', true); return; }
+  const irmaos = l.grupoParcela ? A('lancamentos').filter(x => x.grupoParcela === l.grupoParcela && x.id !== l.id && !pagoDe(x)) : [];
+  const ok = await confirmar(`Excluir o lançamento <b>${esc(l.descricao||l.categoria)}</b> de ${R(l.valor)}? O registro fica guardado na auditoria (exclusão lógica).` +
+    (irmaos.length ? `<br><br>Existem ${irmaos.length} outras parcelas/repetições em aberto deste grupo — elas também serão excluídas.` : ''), 'Excluir');
+  if (!ok) return;
+  try {
+    exigeEscrita();
+    for (const x of [l, ...irmaos]) {
+      await dbUpd('lancamentos', x.id, { excluido:true, excluidoEm:stamp() });
+      await audit('excluir', 'lancamentos', x.id, `${x.categoria} ${R(x.valor)}`);
+    }
+    toast('Lançamento excluído.');
+  } catch(e){ falha(e); }
+}
+
+/* ---------- Página Financeiro ---------- */
+function filtraLancs(prefix){
+  const [ini, fim] = periodo(prefix);
+  const tipo = uiGet(prefix+'Tipo',''), atv = uiGet(prefix+'Atv',''), cat = uiGet(prefix+'Cat',''), st = uiGet(prefix+'St',''), q = (uiGet(prefix+'Q','')||'').toLowerCase();
+  return A('lancamentos').filter(l => inRange(l.data, ini, fim) && (!tipo || l.tipo === tipo) && (!atv || l.atividade === atv) && (!cat || l.categoria === cat) &&
+    (!st || statusL(l) === st || (st === 'aberto' && !quitado(l))) && (!q || `${l.descricao} ${l.contraparte} ${l.categoria} ${l.local}`.toLowerCase().includes(q)))
+    .sort((a,b) => (b.data||'').localeCompare(a.data||'') || (b.criadoEm||'').localeCompare(a.criadoEm||''));
+}
+function tabelaLancs(L, { acoes=true, venc=false } = {}){
+  if (!L.length) return `<div class="tw">${vazio('Nenhum lançamento encontrado', 'Ajuste os filtros ou registre um novo lançamento.')}</div>`;
+  const tr = L.slice(0, 500).map(l => `<tr>
+      <td>${D(venc ? l.vencimento : l.data)}</td>
+      <td><span class="badge ${l.tipo==='receita'?'b-ok':'b-err'}">${l.tipo==='receita'?'Receita':'Despesa'}</span></td>
+      <td>${dotAtv(l.atividade)}</td>
+      <td>${esc(l.categoria)}${l.classificacao && l.classificacao!=='operacional' ? `<div class="small muted">${esc(CLASSIF[l.classificacao])}</div>` : ''}</td>
+      <td>${esc(l.descricao)}${l.contraparte?`<div class="small muted">${esc(l.contraparte)}</div>`:''}</td>
+      <td class="n ${l.tipo==='receita'?'pos':''}">${R(l.valor)}</td>
+      <td class="n">${R(pagoDe(l))}</td>
+      <td>${badgeStatus(statusL(l))}</td>
+      ${acoes ? `<td><div class="acts">
+        ${!quitado(l) ? `<button class="ico" data-act="pagar" data-id="${l.id}">${l.tipo==='receita'?'Receber':'Pagar'}</button>` : `<button class="ico" data-act="pagar" data-id="${l.id}">Pgtos</button>`}
+        <button class="ico" data-act="editLanc" data-id="${l.id}">Editar</button>
+        <button class="ico" data-act="delLanc" data-id="${l.id}" title="Excluir">✕</button></div></td>` : ''}
+    </tr>`).join('');
+  const rec = sum(L.filter(l=>l.tipo==='receita'), l=>l.valor), des = sum(L.filter(l=>l.tipo==='despesa'), l=>l.valor);
+  return `<div class="tw"><table><thead><tr><th>${venc?'Vencimento':'Data'}</th><th>Tipo</th><th>Atividade</th><th>Categoria</th><th>Descrição</th><th class="n">Valor</th><th class="n">Pago/Rec.</th><th>Situação</th>${acoes?'<th></th>':''}</tr></thead>
+    <tbody>${tr}</tbody><tfoot><tr><td colspan="5">${L.length} lançamento(s)${L.length>500?' · mostrando 500':''} · Receitas ${R(rec)} · Despesas ${R(des)}</td><td class="n ${rec-des<0?'neg':'pos'}">${R(rec-des)}</td><td colspan="${acoes?3:2}"></td></tr></tfoot></table></div>`;
+}
+
+function pgFinanceiro(){
+  const tab = uiGet('finTab','lanc');
+  let body = '';
+  if (tab === 'lanc') {
+    const L = filtraLancs('fin');
+    const cats = [...new Set(A('lancamentos').map(l => l.categoria))].sort();
+    body = `<div class="bar">${filtroPeriodo('fin')}
+      <label class="fld"><span>Tipo</span><select data-filter="finTipo">${opts([['receita','Receitas'],['despesa','Despesas']], uiGet('finTipo',''), 'Todos')}</select></label>
+      <label class="fld"><span>Atividade</span><select data-filter="finAtv">${opts(Object.entries(ATIVIDADES), uiGet('finAtv',''), 'Todas')}</select></label>
+      <label class="fld"><span>Categoria</span><select data-filter="finCat">${opts(cats, uiGet('finCat',''), 'Todas')}</select></label>
+      <label class="fld"><span>Situação</span><select data-filter="finSt">${opts([['aberto','Em aberto'],['pendente','Pendente'],['vencido','Vencido'],['parcial','Parcial'],['pago','Pago'],['recebido','Recebido']], uiGet('finSt',''), 'Todas')}</select></label>
+      <label class="fld grow"><span>Buscar</span><input data-filter="finQ" value="${esc(uiGet('finQ',''))}" placeholder="descrição, fornecedor…"></label>
+      <button class="btn ghost" data-act="expLancs">Exportar Excel</button></div>${tabelaLancs(L)}`;
+  } else if (tab === 'pagar' || tab === 'receber') {
+    const tipo = tab === 'pagar' ? 'despesa' : 'receita';
+    const L = abertos(tipo).sort((a,b) => (a.vencimento||'').localeCompare(b.vencimento||''));
+    const venc = L.filter(l => statusL(l) === 'vencido'), prox = L.filter(l => statusL(l) !== 'vencido' && (l.vencimento||'') <= addMeses(hoje(),0).slice(0,8)+'31');
+    body = `<div class="grid g3" style="margin-bottom:14px">
+      ${kpi('Total em aberto', R(sum(L, restante)), L.length+' lançamento(s)', tab==='pagar'?'red':'green')}
+      ${kpi('Vencidos', R(sum(venc, restante)), venc.length+' lançamento(s)', 'red')}
+      ${kpi('Vencem neste mês', R(sum(prox, restante)), prox.length+' lançamento(s)', 'gold')}</div>
+      ${tabelaLancs(L, { venc:true })}`;
+  } else if (tab === 'fluxo') {
+    const ano = +uiGet('fluxoAno', +hoje().slice(0,4));
+    const anos = [...new Set([+hoje().slice(0,4), ...A('lancamentos').map(l => +(l.data||'0').slice(0,4))])].filter(Boolean).sort();
+    let acum = round2(sum(A('contas'), c => c.saldoInicial) + caixa('0000-01-01', (ano-1)+'-12-31').liq);
+    const ini0 = acum;
+    const rows = MESES.map((m,i) => {
+      const mm = `${ano}-${String(i+1).padStart(2,'0')}`; const c = caixa(mm+'-01', mesFim(mm+'-01'));
+      acum = round2(acum + c.liq);
+      return `<tr><td>${m}/${ano}</td><td class="n pos">${R(c.ent)}</td><td class="n neg">${R(c.sai)}</td><td class="n ${c.liq<0?'neg':''}">${R(c.liq)}</td><td class="n"><b>${R(acum)}</b></td></tr>`;
+    }).join('');
+    const tot = caixa(ano+'-01-01', ano+'-12-31');
+    body = `<div class="bar"><label class="fld"><span>Ano</span><select data-filter="fluxoAno">${opts(anos, ano)}</select></label>
+      <span class="small muted" style="align-self:center">Regime de caixa: considera somente valores efetivamente pagos e recebidos.</span></div>
+      <div class="tw"><table><thead><tr><th>Mês</th><th class="n">Entradas</th><th class="n">Saídas</th><th class="n">Saldo do mês</th><th class="n">Saldo acumulado</th></tr></thead>
+      <tbody><tr><td class="muted">Saldo inicial</td><td></td><td></td><td></td><td class="n">${R(ini0)}</td></tr>${rows}</tbody>
+      <tfoot><tr><td>Total ${ano}</td><td class="n">${R(tot.ent)}</td><td class="n">${R(tot.sai)}</td><td class="n">${R(tot.liq)}</td><td class="n">${R(acum)}</td></tr></tfoot></table></div>`;
+  } else if (tab === 'contas') {
+    const cs = A('contas');
+    body = `<div class="bar"><button class="btn primary" data-act="novaConta">+ Nova conta</button><span class="small muted" style="align-self:center">Caixa, conta bancária, poupança… O saldo é calculado pelos pagamentos e recebimentos registrados.</span></div>
+      ${cs.length ? `<div class="tw"><table><thead><tr><th>Conta</th><th>Tipo</th><th class="n">Saldo inicial</th><th class="n">Saldo atual</th><th></th></tr></thead><tbody>
+      ${cs.map(c => `<tr><td><b>${esc(c.nome)}</b>${c.padrao?' <span class="badge b-ok">padrão</span>':''}</td><td>${esc(c.tipoConta||'')}</td><td class="n">${R(c.saldoInicial)}</td><td class="n"><b class="${saldoConta(c)<0?'neg':''}">${R(saldoConta(c))}</b></td>
+        <td><div class="acts"><button class="ico" data-act="editConta" data-id="${c.id}">Editar</button></div></td></tr>`).join('')}
+      </tbody><tfoot><tr><td colspan="3">Saldo financeiro disponível</td><td class="n">${R(saldoTotal())}</td><td></td></tr></tfoot></table></div>` : `<div class="tw">${vazio('Nenhuma conta cadastrada', 'Cadastre ao menos uma conta (ex.: “Caixa” ou “Banco”) para controlar o saldo.')}</div>`}`;
+  }
+  const ap = sum(abertos('despesa'), restante), ar = sum(abertos('receita'), restante);
+  return `<div class="grid g4" style="margin-bottom:16px">
+      ${kpi('Saldo disponível', R(saldoTotal()), A('contas').length+' conta(s)', 'gold')}
+      ${kpi('Contas a pagar', R(ap), abertos('despesa').length+' em aberto', 'red')}
+      ${kpi('Contas a receber', R(ar), abertos('receita').length+' em aberto', 'green')}
+      ${kpi('Saldo projetado', R(saldoTotal()+ar-ap), 'disponível + receber − pagar', 'blue')}</div>
+    <div class="bar"><button class="btn primary" data-act="novoLanc">+ Novo lançamento</button>
+      <button class="btn ghost" data-act="novoLancTipo" data-tipo="receita">+ Receita</button>
+      <button class="btn ghost" data-act="novoLancTipo" data-tipo="despesa">+ Despesa</button></div>
+    ${tabs('finTab', [['lanc','Lançamentos'],['pagar','Contas a pagar'],['receber','Contas a receber'],['fluxo','Fluxo de caixa'],['contas','Contas financeiras']], 'lanc')}
+    ${body}`;
+}
+
+function abrirConta(c = null){
+  modal({ title: c ? 'Editar conta' : 'Nova conta financeira',
+    html: `<div class="fg">${fInp('nome','Nome da conta', c?.nome||'', 'full placeholder="Ex.: Caixa, Banco do Brasil"')}
+      ${fSel('tipoConta','Tipo', ['Caixa','Conta corrente','Poupança','Carteira digital','Outra'], c?.tipoConta||'Caixa')}
+      ${fNum('saldoInicial','Saldo inicial (R$)', c?.saldoInicial||'')}
+      <label class="fld full" style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" name="padrao" ${c?.padrao||!A('contas').length?'checked':''} style="width:auto"> Conta padrão nos lançamentos</label></div>`,
+    async onSubmit(fd){
+      exigeEscrita();
+      const d = { nome:reqTxt(fd.nome,'o nome'), tipoConta:fd.tipoConta, saldoInicial:num(fd.saldoInicial), padrao:!!fd.padrao };
+      if (A('contas').some(x => x.nome.toLowerCase() === d.nome.toLowerCase() && x.id !== c?.id)) throw new Error('Já existe uma conta com esse nome.');
+      if (d.padrao) for (const x of A('contas').filter(x => x.padrao && x.id !== c?.id)) await dbUpd('contas', x.id, { padrao:false });
+      if (c) { await dbUpd('contas', c.id, d); await audit('editar','contas',c.id,d.nome); }
+      else { const id = novoId('contas'); await dbSet('contas', id, d); await audit('criar','contas',id,d.nome); }
+      toast('Conta salva.');
+    } });
+}
+
+/* =====================================================================
+   Animais: cadastro individual, lotes, movimentações, vendas, ovos
+   Regra: saldo de lote = soma dos deltas das movimentações válidas;
+          animal individual ativo = situacao 'ativo'.
+   ===================================================================== */
+const movsValidas = () => A('movimentacoes');
+function saldoLote(id){
+  let s = 0;
+  for (const m of movsValidas()) { if (m.loteId === id) s += +m.delta||0; if (m.paraLoteId === id) s += +m.qtdTransf||0; }
+  return s;
+}
+function custoMedioLote(id){
+  let ent = 0, custo = 0;
+  for (const m of movsValidas()) {
+    if (m.loteId === id && (+m.delta||0) > 0) { ent += +m.delta; if (m.tipo === 'compra') custo += +m.valor||0; }
+    if (m.paraLoteId === id) { ent += +m.qtdTransf||0; custo += +m.custoTransf||0; }
+  }
+  return ent ? custo / ent : 0;
+}
+const indAtivos = esp => A('animais').filter(a => a.especie === esp && a.situacao === 'ativo');
+const lotesAtivos = esp => A('lotes').filter(l => l.especie === esp && l.situacao !== 'encerrado');
+const cabecas = esp => indAtivos(esp).length + sum(lotesAtivos(esp), l => Math.max(0, saldoLote(l.id)));
+const nomeLote = l => l ? `${l.codigo}${l.categoria?' · '+l.categoria:''}` : '—';
+const nomeAnimal = a => a ? `${a.ident}${a.nome?' – '+a.nome:''}` : '—';
+function movsDoAnimal(id){ return movsValidas().filter(m => (m.animalIds||[]).includes(id)).sort((a,b)=>(b.data||'').localeCompare(a.data||'')||(b.criadoEm||'').localeCompare(a.criadoEm||'')); }
+function movsDoLote(id){ return movsValidas().filter(m => m.loteId === id || m.paraLoteId === id).sort((a,b)=>(b.data||'').localeCompare(a.data||'')||(b.criadoEm||'').localeCompare(a.criadoEm||'')); }
+const LOCAL_LBL = { bovino:'Lote / pastagem', suino:'Baia / localização', galinha:'Galinheiro' };
+
+async function criarMov(d, id){
+  const mid = id || novoId('movimentacoes');
+  await dbSet('movimentacoes', mid, d);
+  await audit('movimentar', 'movimentacoes', mid, `${MOV_NOMES[d.tipo]||d.tipo} ${ESPECIES[d.especie]?.sing||''} x${d.qtd||''}`);
+  return mid;
+}
+
+/* Bloco de pagamento reutilizável (compras e vendas) */
+function blocoPagamento(tipo, pfx=''){
+  const rec = tipo === 'receita';
+  return `<div class="fg" style="margin-top:12px">
+    ${fSel(pfx+'situacao', rec ? 'Situação do recebimento' : 'Situação do pagamento', rec ? [['quitado','Recebido'],['parcial','Recebido parcialmente'],['pendente','A receber']] : [['quitado','Pago'],['parcial','Pago parcialmente'],['pendente','A pagar']], 'quitado')}
+    ${fNum(pfx+'valorParcial', rec ? 'Valor recebido agora (R$)' : 'Valor pago agora (R$)', '', '')}
+    ${fSel(pfx+'forma','Forma de pagamento', FORMAS, 'PIX')}
+    ${fSel(pfx+'contaId','Conta financeira', contaOpts(), contaPadrao())}
+    ${fDate(pfx+'vencimento','Vencimento')}
+  </div>`;
+}
+function wirePagamento(form, pfx=''){
+  const sit = form.elements[pfx+'situacao'], parc = form.elements[pfx+'valorParcial'];
+  const upd = () => { parc.closest('.fld').style.display = sit.value === 'parcial' ? '' : 'none'; };
+  sit.addEventListener('change', upd); upd();
+}
+function pagoAgoraDe(fd, total, pfx=''){
+  const s = fd[pfx+'situacao'];
+  if (s === 'quitado') return total;
+  if (s === 'parcial') { const v = reqPos(fd[pfx+'valorParcial'], 'o valor pago/recebido agora'); if (v >= total) throw new Error('Valor parcial deve ser menor que o total.'); return v; }
+  return 0;
+}
+function checaConta(fd, pago, pfx=''){ if (pago > 0 && !fd[pfx+'contaId']) throw new Error('Cadastre uma conta financeira em Financeiro › Contas.'); }
+
+/* ---------- Cadastro individual (bovinos e suínos) ---------- */
+function abrirAnimal(esp, edit = null){
+  const a = edit || {};
+  const novo = !edit;
+  const html = `<div class="fg">
+    ${fInp('ident', esp==='bovino' ? 'Número do brinco *' : 'Identificação (brinco/mossa) *', a.ident||'')}
+    ${fInp('nome','Nome ou apelido', a.nome||'')}
+    ${fInp('raca','Raça', a.raca||'', 'list="dl-racas"')}
+    ${fSel('sexo','Sexo', ['Macho','Fêmea'], a.sexo||'Fêmea')}
+    ${fDate('nascimento','Data de nascimento', a.nascimento||'')}
+    ${fSel('categoria','Categoria', catsAnimal(esp), a.categoria || (esp==='suino'?'Matriz':'Vaca'))}
+    ${fNum('pesoInicial','Peso inicial (kg)', a.pesoInicial||'')}
+    ${fInp('local', LOCAL_LBL[esp], a.local||'', 'list="dl-locais-an"')}
+    ${fInp('mae','Mãe (identificação)', a.mae||'')}
+    ${fInp('pai','Pai / reprodutor', a.pai||'')}
+    ${novo ? `${fSel('origem','Origem / entrada', [['compra','Compra'],['nascimento','Nascimento na propriedade'],['entrada','Inventário inicial / já existente']], 'compra')}
+      ${fDate('dataEntrada','Data de entrada')}
+      ${fNum('valorAquisicao','Valor de aquisição (R$)', '')}
+      ${fInp('fornecedor','Fornecedor / origem', '')}` : `<div class="fld full note">Origem: <b>${esc(MOV_NOMES[a.origem]||a.origem)}</b> em ${D(a.dataEntrada)}${a.valorAquisicao?` · ${R(a.valorAquisicao)}`:''}. Para corrigir origem ou valor, estorne a movimentação de entrada.</div>`}
+    ${fTxt('obs','Observações', a.obs||'')}
+  </div>
+  ${novo ? `<div data-w="pg">${blocoPagamento('despesa')}</div>` : ''}
+  <datalist id="dl-racas">${[...new Set(A('animais').filter(x=>x.especie===esp).map(x=>x.raca).filter(Boolean))].map(r=>`<option value="${esc(r)}">`).join('')}</datalist>
+  <datalist id="dl-locais-an">${[...new Set(A('animais').filter(x=>x.especie===esp).map(x=>x.local).filter(Boolean))].map(r=>`<option value="${esc(r)}">`).join('')}</datalist>`;
+  modal({ title: (novo ? 'Novo ' : 'Editar ') + ESPECIES[esp].sing.toLowerCase(), html, submit: novo ? 'Cadastrar' : 'Salvar',
+    onInit(form){
+      if (!novo) return;
+      wirePagamento(form);
+      const upd = () => { const c = form.elements.origem.value === 'compra';
+        form.querySelector('[data-w=pg]').style.display = c ? '' : 'none';
+        form.elements.valorAquisicao.closest('.fld').style.display = c ? '' : 'none';
+        form.elements.fornecedor.closest('.fld').querySelector('span').textContent = c ? 'Fornecedor' : 'Origem / observação'; };
+      form.elements.origem.addEventListener('change', upd); upd();
+      form.elements.nascimento.addEventListener('change', () => { if (form.elements.origem.value === 'nascimento') form.elements.dataEntrada.value = form.elements.nascimento.value; });
+    },
+    async onSubmit(fd){
+      exigeEscrita();
+      const d = { especie:esp, ident:reqTxt(fd.ident,'a identificação'), nome:(fd.nome||'').trim(), raca:(fd.raca||'').trim(), sexo:fd.sexo,
+        nascimento:fd.nascimento||'', categoria:fd.categoria, pesoInicial:num(fd.pesoInicial)||null, local:(fd.local||'').trim(), mae:(fd.mae||'').trim(), pai:(fd.pai||'').trim(), obs:(fd.obs||'').trim() };
+      const dupl = A('animais').find(x => x.especie === esp && x.situacao === 'ativo' && x.ident.toLowerCase() === d.ident.toLowerCase() && x.id !== a.id);
+      if (dupl) throw new Error(`Já existe um ${ESPECIES[esp].sing.toLowerCase()} ativo com a identificação "${d.ident}".`);
+      if (!novo) { await dbUpd('animais', a.id, d); await audit('editar','animais',a.id,d.ident); toast('Cadastro atualizado.'); return; }
+      const origem = fd.origem, dataEntrada = reqData(fd.dataEntrada, 'a data de entrada');
+      const valor = origem === 'compra' ? num(fd.valorAquisicao) : 0;
+      const pago = valor > 0 ? pagoAgoraDe(fd, valor) : 0; checaConta(fd, pago);
+      const aid = novoId('animais'), mid = novoId('movimentacoes'), lid = valor > 0 ? novoId('lancamentos') : null;
+      await dbSet('animais', aid, { ...d, origem, dataEntrada, valorAquisicao:valor||null, fornecedor:(fd.fornecedor||'').trim(), pesoAtual:d.pesoInicial, dataPeso:d.pesoInicial?dataEntrada:null, situacao:'ativo' });
+      await criarMov({ especie:esp, tipo:origem, data:dataEntrada, animalIds:[aid], qtd:1, valor:valor||null, peso:d.pesoInicial, contraparte:(fd.fornecedor||'').trim(), lancamentoId:lid, obs:'Cadastro de '+d.ident, cadastro:true }, mid);
+      if (lid) await criarLanc({ tipo:'despesa', data:dataEntrada, atividade:ESPECIES[esp].atividade, categoria:COMPRA_CAT[ESPECIES[esp].atividade], classificacao:'patrimonio',
+        descricao:`Compra ${ESPECIES[esp].sing.toLowerCase()} ${d.ident}`, quantidade:1, valorUnit:valor, valor, forma:fd.forma, contaId:fd.contaId, vencimento:fd.vencimento||dataEntrada,
+        contraparte:(fd.fornecedor||'').trim(), origem:'compra', refId:mid }, { id:lid, pagoAgora:pago, contaId:fd.contaId });
+      toast(`${ESPECIES[esp].sing} ${d.ident} cadastrado.`);
+    } });
+}
+
+function abrirFicha(id){
+  const a = byId('animais', id); if (!a) return;
+  const esp = a.especie, movs = movsDoAnimal(id);
+  const pes = movs.filter(m => m.tipo === 'pesagem').sort((x,y)=>(x.data||'').localeCompare(y.data||''));
+  const gmdTot = (a.pesoAtual && a.pesoInicial && a.dataPeso && a.dataEntrada && diasEntre(a.dataEntrada, a.dataPeso) > 0) ? (a.pesoAtual - a.pesoInicial) / diasEntre(a.dataEntrada, a.dataPeso) : null;
+  const ativo = a.situacao === 'ativo';
+  const html = `<div class="dl">
+      <div><span>Identificação</span><b>${esc(nomeAnimal(a))}</b></div><div><span>Categoria</span><b>${esc(a.categoria)}</b></div><div><span>Situação</span><b>${situacaoBadge(a.situacao)}</b></div>
+      <div><span>Raça / sexo</span><b>${esc(a.raca||'—')} · ${esc(a.sexo||'')}</b></div><div><span>Nascimento / idade</span><b>${D(a.nascimento)||'—'} · ${idadeTxt(a.nascimento)}</b></div><div><span>${LOCAL_LBL[esp]}</span><b>${esc(a.local||'—')}</b></div>
+      <div><span>Peso inicial</span><b>${a.pesoInicial?N(a.pesoInicial,1)+' kg':'—'}</b></div><div><span>Peso atual</span><b>${a.pesoAtual?N(a.pesoAtual,1)+' kg':'—'}${a.dataPeso?` <span class="muted small">(${D(a.dataPeso)})</span>`:''}</b></div><div><span>GMD desde a entrada</span><b>${gmdTot!=null?N(gmdTot,3)+' kg/dia':'—'}</b></div>
+      <div><span>Origem</span><b>${esc(MOV_NOMES[a.origem]||a.origem||'—')} · ${D(a.dataEntrada)}</b></div><div><span>Valor de aquisição</span><b>${a.valorAquisicao?R(a.valorAquisicao):'—'}</b></div><div><span>Mãe / pai</span><b>${esc(a.mae||'—')} / ${esc(a.pai||'—')}</b></div>
+    </div>
+    ${a.obs?`<div class="note" style="margin-bottom:12px">${esc(a.obs)}</div>`:''}
+    <div class="btnrow">
+      <button type="button" class="btn ghost sm" data-act="editAnimal" data-id="${id}">Editar cadastro</button>
+      ${ativo ? `<button type="button" class="btn ghost sm" data-act="pesagem" data-id="${id}">Pesagem</button>
+      <button type="button" class="btn ghost sm" data-act="indMov" data-tipo="transferencia" data-id="${id}">Transferir ${esp==='bovino'?'lote/pasto':'baia'}</button>
+      <button type="button" class="btn ghost sm" data-act="indMov" data-tipo="categoria" data-id="${id}">Mudar categoria</button>
+      <button type="button" class="btn gold sm" data-act="vender" data-esp="${esp}" data-animal="${id}">Vender</button>
+      <button type="button" class="btn danger sm" data-act="indMov" data-tipo="mortalidade" data-id="${id}">Mortalidade</button>
+      <button type="button" class="btn danger sm" data-act="indMov" data-tipo="saida" data-id="${id}">Saída / descarte</button>` : ''}
+    </div>
+    <h4 style="font-size:16px;color:var(--verde);margin:6px 0 8px">Histórico individual</h4>
+    ${tabelaMovs(movs, { compacta:true })}
+    ${pes.length > 1 ? `<h4 style="font-size:16px;color:var(--verde);margin:16px 0 8px">Evolução de peso</h4><div class="chart-box sm"><canvas id="chPeso"></canvas></div>` : ''}`;
+  modal({ title:`Ficha · ${ESPECIES[esp].sing} ${a.ident}`, html, wide:true,
+    onInit(){ if (pes.length > 1 && window.Chart) (new Chart(document.getElementById('chPeso'), { type:'line',
+      data:{ labels:pes.map(p=>D(p.data)), datasets:[{ label:'Peso (kg)', data:pes.map(p=>p.peso), borderColor:CORES.bovinos, backgroundColor:CORES.bovinos, borderWidth:2, pointRadius:4, tension:.2 }] },
+      options:chartOpts({ legend:false, money:false }) })); } });
+}
+function situacaoBadge(s){ const m = { ativo:['b-ok','Ativo'], vendido:['b-par','Vendido'], morto:['b-err','Morto'], baixado:['b-mut','Baixado'] }[s] || ['b-mut',s]; return `<span class="badge ${m[0]}">${m[1]}</span>`; }
+
+function abrirPesagem(id){
+  const a = byId('animais', id);
+  modal({ title:`Pesagem · ${a.ident}`, html:`<div class="fg">${fDate('data','Data da pesagem')}${fNum('peso','Peso (kg)','')}${fTxt('obs','Observações','')}</div>
+    <p class="small muted">Peso anterior: ${a.pesoAtual?N(a.pesoAtual,1)+' kg em '+D(a.dataPeso||a.dataEntrada):'não informado'}. O ganho médio diário (GMD) é calculado automaticamente.</p>`,
+    async onSubmit(fd){
+      exigeEscrita();
+      const peso = reqPos(fd.peso,'o peso'), data = reqData(fd.data);
+      const ant = a.pesoAtual || null, dAnt = a.dataPeso || a.dataEntrada;
+      const dias = ant && dAnt ? diasEntre(dAnt, data) : 0;
+      const gmd = dias > 0 ? round2((peso-ant)/dias*1000)/1000 : null;
+      await criarMov({ especie:a.especie, tipo:'pesagem', data, animalIds:[id], qtd:1, peso, pesoAnterior:ant, dataAnterior:dAnt||null, gmd, obs:(fd.obs||'').trim() });
+      if (!a.dataPeso || data >= a.dataPeso) await dbUpd('animais', id, { pesoAtual:peso, dataPeso:data });
+      toast(gmd!=null ? `Pesagem registrada · GMD ${N(gmd,3)} kg/dia` : 'Pesagem registrada.');
+    } });
+}
+
+function abrirMovInd(id, tipo){
+  const a = byId('animais', id), esp = a.especie;
+  const T = { mortalidade:'Registrar mortalidade', saida:'Saída / descarte / ajuste', transferencia:`Transferir ${LOCAL_LBL[esp].toLowerCase()}`, categoria:'Mudança de categoria' }[tipo];
+  let campos = '';
+  if (tipo === 'mortalidade') campos = fInp('causa','Causa provável','', 'full');
+  if (tipo === 'saida') campos = fSel('subtipo','Tipo', [['descarte','Descarte'],['saida','Saída (doação, consumo próprio, perda)'],['ajuste','Ajuste de inventário (animal não encontrado)']], 'descarte', 'full');
+  if (tipo === 'transferencia') campos = `<div class="fld"><span>Atual</span><input readonly value="${esc(a.local||'—')}"></div>${fInp('para','Novo '+LOCAL_LBL[esp].toLowerCase(),'','list="dl-loc2"')}<datalist id="dl-loc2">${[...new Set(A('animais').filter(x=>x.especie===esp).map(x=>x.local).filter(Boolean))].map(r=>`<option value="${esc(r)}">`).join('')}</datalist>`;
+  if (tipo === 'categoria') campos = `<div class="fld"><span>Atual</span><input readonly value="${esc(a.categoria)}"></div>${fSel('para','Nova categoria', catsAnimal(esp), a.categoria)}`;
+  modal({ title:`${T} · ${a.ident}`, html:`<div class="fg">${fDate('data','Data')}<div></div>${campos}${fTxt('obs','Observações','')}</div>
+    ${['mortalidade','saida'].includes(tipo) ? '<p class="small muted">O animal sai do saldo ativo. Não gera lançamento financeiro.</p>' : '<p class="small muted">Movimentação interna: não gera lançamento financeiro.</p>'}`,
+    submit:'Registrar',
+    async onSubmit(fd){
+      exigeEscrita(); const data = reqData(fd.data); const obs = (fd.obs||'').trim();
+      if (tipo === 'mortalidade') {
+        await criarMov({ especie:esp, tipo:'mortalidade', data, animalIds:[id], qtd:1, causa:(fd.causa||'').trim(), obs });
+        await dbUpd('animais', id, { situacao:'morto', dataSaida:data });
+      } else if (tipo === 'saida') {
+        await criarMov({ especie:esp, tipo:fd.subtipo, data, animalIds:[id], qtd:1, obs });
+        await dbUpd('animais', id, { situacao:'baixado', dataSaida:data });
+      } else if (tipo === 'transferencia') {
+        const para = reqTxt(fd.para, 'o destino');
+        await criarMov({ especie:esp, tipo:'transferencia', data, animalIds:[id], qtd:1, de:a.local||'', para, obs });
+        await dbUpd('animais', id, { local:para });
+      } else if (tipo === 'categoria') {
+        if (fd.para === a.categoria) throw new Error('Escolha uma categoria diferente da atual.');
+        await criarMov({ especie:esp, tipo:'categoria', data, animalIds:[id], qtd:1, de:a.categoria, para:fd.para, obs });
+        await dbUpd('animais', id, { categoria:fd.para });
+      }
+      toast('Movimentação registrada.');
+      $$('#modal-root .mback').forEach(m => m.remove()); abrirFicha(id);
+    } });
+}
+
+/* ---------- Lotes (suínos e galinhas) ---------- */
+function abrirLote(esp, edit = null){
+  const l = edit || {}, novo = !edit;
+  const html = `<div class="fg">
+    ${fInp('codigo','Identificação do lote *', l.codigo || proximoCodigo(esp))}
+    ${fSel('categoria', esp==='galinha' ? 'Tipo de criação' : 'Categoria', catsAnimal(esp), l.categoria || (esp==='galinha'?'Caipira':'Leitão lactente'))}
+    ${fInp('raca', esp==='galinha'?'Raça ou linhagem':'Raça', l.raca||'')}
+    ${fDate('nascimento','Data de nascimento (aprox.)', l.nascimento||'')}
+    ${fInp('local', LOCAL_LBL[esp], l.local||'')}
+    ${fNum('pesoMedio','Peso médio inicial (kg)', l.pesoMedio||'')}
+    ${novo ? `${fNum('qtd','Quantidade inicial *','')}
+      ${fSel('origem','Origem', [['compra','Compra'],['nascimento','Nascimento na propriedade'],['entrada','Inventário inicial / já existente']], 'compra')}
+      ${fDate('dataEntrada','Data de entrada')}
+      ${fNum('valorAquisicao','Valor total de aquisição (R$)','')}
+      ${fInp('fornecedor','Fornecedor / origem','')}
+      ${esp==='suino' ? fInp('matriz','Matriz (leitegada)','', 'list="dl-matrizes"') : ''}` :
+      `<div class="fld full note">Entrada: ${esc(MOV_NOMES[l.origem]||l.origem)} de ${N(l.qtdInicial)} cabeças em ${D(l.dataEntrada)}${l.valorAquisicao?' · '+R(l.valorAquisicao):''}.</div>`}
+    ${fTxt('obs','Observações', l.obs||'')}
+  </div>${novo ? `<div data-w="pg">${blocoPagamento('despesa')}</div>` : ''}
+  <datalist id="dl-matrizes">${indAtivos('suino').filter(x=>x.sexo==='Fêmea').map(x=>`<option value="${esc(x.ident)}">`).join('')}</datalist>`;
+  modal({ title: novo ? `Novo lote de ${ESPECIES[esp].nome.toLowerCase()}` : 'Editar lote', html, submit: novo ? 'Cadastrar lote' : 'Salvar',
+    onInit(form){
+      if (!novo) return; wirePagamento(form);
+      const upd = () => { const c = form.elements.origem.value === 'compra';
+        form.querySelector('[data-w=pg]').style.display = c ? '' : 'none'; form.elements.valorAquisicao.closest('.fld').style.display = c ? '' : 'none'; };
+      form.elements.origem.addEventListener('change', upd); upd();
+    },
+    async onSubmit(fd){
+      exigeEscrita();
+      const d = { especie:esp, codigo:reqTxt(fd.codigo,'a identificação do lote'), categoria:fd.categoria, raca:(fd.raca||'').trim(), nascimento:fd.nascimento||'', local:(fd.local||'').trim(), pesoMedio:num(fd.pesoMedio)||null, obs:(fd.obs||'').trim() };
+      if (A('lotes').some(x => x.especie === esp && x.codigo.toLowerCase() === d.codigo.toLowerCase() && x.id !== l.id)) throw new Error('Já existe um lote com essa identificação.');
+      if (!novo) { await dbUpd('lotes', l.id, d); await audit('editar','lotes',l.id,d.codigo); toast('Lote atualizado.'); return; }
+      const qtd = Math.round(reqPos(fd.qtd, 'a quantidade inicial'));
+      const origem = fd.origem, data = reqData(fd.dataEntrada, 'a data de entrada');
+      const valor = origem === 'compra' ? num(fd.valorAquisicao) : 0;
+      const pago = valor > 0 ? pagoAgoraDe(fd, valor) : 0; checaConta(fd, pago);
+      const loteId = novoId('lotes'), mid = novoId('movimentacoes'), lid = valor > 0 ? novoId('lancamentos') : null;
+      await dbSet('lotes', loteId, { ...d, qtdInicial:qtd, origem, dataEntrada:data, valorAquisicao:valor||null, fornecedor:(fd.fornecedor||'').trim(), matriz:(fd.matriz||'').trim(), situacao:'ativo' });
+      await criarMov({ especie:esp, tipo:origem, data, loteId, delta:qtd, qtd, valor:valor||null, contraparte:(fd.fornecedor||'').trim(), lancamentoId:lid, cadastro:true, obs:'Formação do lote '+d.codigo }, mid);
+      if (lid) await criarLanc({ tipo:'despesa', data, atividade:ESPECIES[esp].atividade, categoria:COMPRA_CAT[ESPECIES[esp].atividade], classificacao:'patrimonio',
+        descricao:`Compra lote ${d.codigo} (${qtd} cab.)`, quantidade:qtd, valorUnit:round2(valor/qtd), valor, forma:fd.forma, contaId:fd.contaId, vencimento:fd.vencimento||data,
+        contraparte:(fd.fornecedor||'').trim(), origem:'compra', refId:mid }, { id:lid, pagoAgora:pago, contaId:fd.contaId });
+      toast(`Lote ${d.codigo} cadastrado com ${qtd} cabeças.`);
+    } });
+}
+function proximoCodigo(esp){ const p = esp==='galinha'?'GAL':'SUI'; const n = A('lotes').filter(l=>l.especie===esp).length + 1; return `${p}-${String(n).padStart(3,'0')}`; }
+
+const MOV_LOTE = {
+  nascimento:{ t:'Nascimento', sinal:+1 }, compra:{ t:'Compra de animais', sinal:+1 }, mortalidade:{ t:'Mortalidade', sinal:-1 },
+  descarte:{ t:'Descarte', sinal:-1 }, ajuste:{ t:'Ajuste de quantidade', sinal:0 }, transferencia:{ t:'Transferência para outro lote', sinal:-1 },
+  local:{ t:'Transferência de local', sinal:0 }, categoria:{ t:'Mudança de categoria', sinal:0 }, desmame:{ t:'Desmame', sinal:0 }
+};
+function abrirMovLote(loteId, tipo){
+  const l = byId('lotes', loteId), esp = l.especie, saldo = saldoLote(loteId), cfgT = MOV_LOTE[tipo];
+  let campos = '';
+  if (['nascimento','mortalidade','descarte','compra'].includes(tipo)) campos += fNum('qtd','Quantidade *','');
+  if (tipo === 'mortalidade') campos += fInp('causa','Causa provável','');
+  if (tipo === 'ajuste') campos += fSel('sentido','Ajuste', [['+','Acrescentar (+)'],['-','Retirar (−)']], '-') + fNum('qtd','Quantidade *','');
+  if (tipo === 'compra') campos += fNum('valor','Valor total (R$)','') + fInp('fornecedor','Fornecedor','');
+  if (tipo === 'transferencia') {
+    const dest = A('lotes').filter(x => x.especie === esp && x.id !== loteId && x.situacao !== 'encerrado');
+    campos += fNum('qtd','Quantidade *','') + `<label class="fld"><span>Lote de destino *</span><select name="para">${opts(dest.map(x=>[x.id, nomeLote(x)]), '', dest.length?'Selecione…':'Nenhum outro lote ativo')}</select></label>`;
+  }
+  if (tipo === 'local') campos += `<div class="fld"><span>Atual</span><input readonly value="${esc(l.local||'—')}"></div>` + fInp('para','Novo '+LOCAL_LBL[esp].toLowerCase(),'');
+  if (tipo === 'categoria') campos += `<div class="fld"><span>Atual</span><input readonly value="${esc(l.categoria)}"></div>` + fSel('para','Nova categoria', catsAnimal(esp), l.categoria);
+  if (tipo === 'desmame') campos += fNum('qtd','Quantidade desmamada *', saldo) + fNum('pesoMedio','Peso médio no desmame (kg)','');
+  modal({ title:`${cfgT.t} · ${l.codigo}`, submit:'Registrar',
+    html:`<div class="note" style="margin-bottom:12px">Saldo atual do lote: <b>${N(saldo)} cabeça(s)</b>.</div><div class="fg">${fDate('data','Data')}${campos}${fTxt('obs','Observações','')}</div>
+      ${tipo==='compra' ? `<div data-w="pg">${blocoPagamento('despesa')}</div>` : ''}
+      ${tipo==='desmame' ? '<p class="small muted">A categoria do lote passa para “Leitão desmamado”. Leitões não desmamados (mortes na maternidade) devem ser lançados como mortalidade.</p>' : ''}`,
+    onInit(form){ if (tipo === 'compra') wirePagamento(form); },
+    async onSubmit(fd){
+      exigeEscrita(); const data = reqData(fd.data), obs = (fd.obs||'').trim();
+      const base = { especie:esp, data, loteId, obs };
+      if (['nascimento','mortalidade','descarte'].includes(tipo)) {
+        const q = Math.round(reqPos(fd.qtd,'a quantidade'));
+        if (cfgT.sinal < 0 && q > saldo) throw new Error(`Quantidade maior que o saldo do lote (${saldo}).`);
+        await criarMov({ ...base, tipo, delta:cfgT.sinal*q, qtd:q, causa:(fd.causa||'').trim()||null });
+      } else if (tipo === 'ajuste') {
+        const q = Math.round(reqPos(fd.qtd,'a quantidade')); const s = fd.sentido === '+' ? 1 : -1;
+        if (s < 0 && q > saldo) throw new Error(`Quantidade maior que o saldo do lote (${saldo}).`);
+        if (!obs) throw new Error('Informe o motivo do ajuste nas observações.');
+        await criarMov({ ...base, tipo:'ajuste', delta:s*q, qtd:q });
+      } else if (tipo === 'compra') {
+        const q = Math.round(reqPos(fd.qtd,'a quantidade')), valor = num(fd.valor);
+        const pago = valor > 0 ? pagoAgoraDe(fd, valor) : 0; checaConta(fd, pago);
+        const mid = novoId('movimentacoes'), lid = valor > 0 ? novoId('lancamentos') : null;
+        await criarMov({ ...base, tipo:'compra', delta:q, qtd:q, valor:valor||null, contraparte:(fd.fornecedor||'').trim(), lancamentoId:lid }, mid);
+        if (lid) await criarLanc({ tipo:'despesa', data, atividade:ESPECIES[esp].atividade, categoria:COMPRA_CAT[ESPECIES[esp].atividade], classificacao:'patrimonio',
+          descricao:`Compra p/ lote ${l.codigo} (${q} cab.)`, quantidade:q, valorUnit:round2(valor/q), valor, forma:fd.forma, contaId:fd.contaId, vencimento:fd.vencimento||data,
+          contraparte:(fd.fornecedor||'').trim(), origem:'compra', refId:mid }, { id:lid, pagoAgora:pago, contaId:fd.contaId });
+      } else if (tipo === 'transferencia') {
+        const q = Math.round(reqPos(fd.qtd,'a quantidade'));
+        if (!fd.para) throw new Error('Selecione o lote de destino.');
+        if (q > saldo) throw new Error(`Quantidade maior que o saldo do lote (${saldo}).`);
+        const custo = round2(custoMedioLote(loteId) * q);
+        await criarMov({ ...base, tipo:'transferencia', delta:-q, qtd:q, paraLoteId:fd.para, qtdTransf:q, custoTransf:custo });
+      } else if (tipo === 'local') {
+        const para = reqTxt(fd.para,'o novo local');
+        await criarMov({ ...base, tipo:'local', delta:0, qtd:saldo, de:l.local||'', para });
+        await dbUpd('lotes', loteId, { local:para });
+      } else if (tipo === 'categoria') {
+        if (fd.para === l.categoria) throw new Error('Escolha uma categoria diferente.');
+        await criarMov({ ...base, tipo:'categoria', delta:0, qtd:saldo, de:l.categoria, para:fd.para });
+        await dbUpd('lotes', loteId, { categoria:fd.para });
+      } else if (tipo === 'desmame') {
+        const q = Math.round(reqPos(fd.qtd,'a quantidade desmamada'));
+        if (q > saldo) throw new Error(`Quantidade maior que o saldo do lote (${saldo}).`);
+        await criarMov({ ...base, tipo:'desmame', delta:0, qtd:q, pesoMedio:num(fd.pesoMedio)||null, de:l.categoria, para:'Leitão desmamado' });
+        await dbUpd('lotes', loteId, { categoria:'Leitão desmamado', pesoMedio:num(fd.pesoMedio)||l.pesoMedio||null, dataDesmame:data, qtdDesmamada:q });
+      }
+      toast('Movimentação registrada.');
+    } });
+}
+
+function abrirFichaLote(id){
+  const l = byId('lotes', id); if (!l) return;
+  const esp = l.especie, saldo = saldoLote(id), movs = movsDoLote(id);
+  const nasc = sum(movs.filter(m=>m.loteId===id && m.tipo==='nascimento'), m=>m.qtd) + (l.origem==='nascimento'?0:0);
+  const mort = sum(movs.filter(m=>m.loteId===id && m.tipo==='mortalidade'), m=>m.qtd);
+  const vend = sum(movs.filter(m=>m.loteId===id && m.tipo==='venda'), m=>m.qtd);
+  const entr = sum(movs.filter(m=>m.loteId===id && (+m.delta||0)>0), m=>m.delta) + sum(movs.filter(m=>m.paraLoteId===id), m=>m.qtdTransf);
+  const ativo = l.situacao !== 'encerrado';
+  const btn = (t,lbl,cls='ghost') => `<button type="button" class="btn ${cls} sm" data-act="loteMov" data-id="${id}" data-tipo="${t}">${lbl}</button>`;
+  const html = `<div class="dl">
+    <div><span>Lote</span><b>${esc(l.codigo)}</b></div><div><span>${esp==='galinha'?'Tipo de criação':'Categoria'}</span><b>${esc(l.categoria)}</b></div><div><span>Saldo atual</span><b style="font-size:18px">${N(saldo)} cab.</b></div>
+    <div><span>Raça / linhagem</span><b>${esc(l.raca||'—')}</b></div><div><span>${LOCAL_LBL[esp]}</span><b>${esc(l.local||'—')}</b></div><div><span>Idade</span><b>${idadeTxt(l.nascimento)}</b></div>
+    <div><span>Entradas totais</span><b>${N(entr)}</b></div><div><span>Mortalidade</span><b>${N(mort)} ${entr?`<span class="muted small">(${N(mort/entr*100,1)}%)</span>`:''}</b></div><div><span>Vendidos</span><b>${N(vend)}</b></div>
+    <div><span>Custo médio de aquisição</span><b>${custoMedioLote(id)?R(custoMedioLote(id))+'/cab.':'—'}</b></div>${l.matriz?`<div><span>Matriz</span><b>${esc(l.matriz)}</b></div>`:''}${l.qtdDesmamada?`<div><span>Desmame</span><b>${N(l.qtdDesmamada)} em ${D(l.dataDesmame)}${l.pesoMedio?' · '+N(l.pesoMedio,1)+' kg':''}</b></div>`:''}
+  </div>
+  <div class="btnrow"><button type="button" class="btn ghost sm" data-act="editLote" data-id="${id}">Editar</button>
+    ${ativo ? `${btn('nascimento','Nascimento')}${btn('compra','Compra')}${btn('mortalidade','Mortalidade','danger')}${btn('descarte','Descarte','danger')}${btn('transferencia','Transferir p/ lote')}${btn('local','Mudar '+(esp==='galinha'?'galinheiro':'baia'))}${btn('categoria','Mudar categoria')}${esp==='suino'?btn('desmame','Desmame'):''}${btn('ajuste','Ajuste')}
+    <button type="button" class="btn gold sm" data-act="vender" data-esp="${esp}" data-lote="${id}">Vender</button>
+    ${saldo===0?`<button type="button" class="btn ghost sm" data-act="encerrarLote" data-id="${id}">Encerrar lote</button>`:''}` : `<span class="badge b-mut">Lote encerrado</span> <button type="button" class="btn ghost sm" data-act="reabrirLote" data-id="${id}">Reabrir</button>`}</div>
+  <h4 style="font-size:16px;color:var(--verde);margin:6px 0 8px">Histórico do lote</h4>${tabelaMovs(movs, { compacta:true, loteRef:id })}`;
+  modal({ title:`Lote ${l.codigo} · ${ESPECIES[esp].nome}`, html, wide:true });
+}
+
+/* ---------- Venda ---------- */
+function abrirVenda(esp, { loteId, animalId } = {}){
+  const lotes = lotesAtivos(esp).filter(l => saldoLote(l.id) > 0);
+  const inds = indAtivos(esp);
+  const multi = esp === 'bovino';
+  let origemHtml;
+  if (multi) {
+    origemHtml = inds.length ? `<div class="fld full"><span>Animais vendidos * <span class="muted">(marque um ou mais)</span></span><div class="checklist">${inds.sort((a,b)=>a.ident.localeCompare(b.ident,'pt',{numeric:true})).map(a =>
+      `<label><input type="checkbox" name="animal" value="${a.id}" ${a.id===animalId?'checked':''} data-peso="${a.pesoAtual||0}" data-custo="${a.valorAquisicao||0}"> <b>${esc(a.ident)}</b> ${esc(a.nome||'')} <span class="muted small">${esc(a.categoria)} · ${a.pesoAtual?N(a.pesoAtual,0)+' kg':'s/ peso'}${a.local?' · '+esc(a.local):''}</span></label>`).join('')}</div></div>`
+      : `<div class="fld full note">Nenhum bovino ativo para vender.</div>`;
+  } else {
+    const o = [...lotes.map(l => ['L:'+l.id, `Lote ${nomeLote(l)} — saldo ${saldoLote(l.id)}`]), ...inds.map(a => ['A:'+a.id, `Animal ${a.ident} · ${a.categoria}`])];
+    origemHtml = `<label class="fld full"><span>Origem (lote ou animal) *</span><select name="origem">${opts(o, loteId ? 'L:'+loteId : animalId ? 'A:'+animalId : '', o.length ? 'Selecione…' : 'Nada disponível para venda')}</select></label>`;
+  }
+  const html = `<div class="fg">
+    ${fDate('data','Data da venda')}
+    ${fSel('produto','Produto / categoria comercializada', PRODUTOS_VENDA[esp].map(p=>p[0]), '')}
+    ${origemHtml}
+    ${fSel('modo','Comercialização por', [['cabeca','Cabeça'],['unidade','Unidade'],['kg','Quilograma (kg)'],['lote','Lote (valor fechado)']], 'cabeca')}
+    ${fNum('qtd','Quantidade *','', multi?'readonly':'')}
+    ${fInp('idade','Idade','')}
+    ${fNum('pesoMedio','Peso médio (kg)','')}
+    ${fNum('pesoTotal','Peso total (kg)','')}
+    ${fInp('pesosInd','Pesos individuais (kg, separados por ;)','', 'full placeholder="Opcional. Ex.: 98; 102,5; 101"')}
+    ${fNum('valorCabeca','Valor por cabeça/unidade (R$)','')}
+    ${fNum('valorKg','Valor por kg (R$)','')}
+    ${fNum('valorTotal','Valor total (R$)','')}
+    ${fInp('comprador','Comprador','')}
+  </div>
+  <div class="calc" style="margin-top:14px"><div><span>Receita total</span><b data-o="tot">R$ 0,00</b></div><div><span>Custo dos animais</span><b data-o="custo">R$ 0,00</b></div><div><span>Lucro / prejuízo</span><b data-o="luc">R$ 0,00</b></div><div><span>Disponível</span><b data-o="disp">—</b></div></div>
+  <p class="small muted" style="margin:6px 0 0">Custo = valor de aquisição dos animais vendidos (custo de alimentação e manejo por cabeça entra no módulo Custos, Etapa 3).</p>
+  ${blocoPagamento('receita')}
+  ${fTxt('obs','Observações','')}`;
+  modal({ title:`Venda de ${ESPECIES[esp].nome.toLowerCase()}`, html, wide:true, submit:'Registrar venda',
+    onInit(form){
+      wirePagamento(form);
+      const f = n => form.elements[n];
+      const st = () => {
+        if (multi) { const ck = $$('input[name=animal]:checked', form); return { disp: inds.length, qtd: ck.length, custo: sum(ck, c => c.dataset.custo), peso: sum(ck, c => c.dataset.peso) }; }
+        const v = f('origem').value; if (!v) return { disp:0, custo:0 };
+        if (v.startsWith('L:')) { const id = v.slice(2); return { disp: saldoLote(id), custoUnit: custoMedioLote(id), lote: byId('lotes', id) }; }
+        const a = byId('animais', v.slice(2)); return { disp:1, custoUnit:a.valorAquisicao||0, animal:a };
+      };
+      let ultimo = null;
+      function recalc(src){
+        const s = st(); const modo = f('modo').value;
+        if (multi) { f('qtd').value = s.qtd || ''; if (src === 'animal' && s.peso) { f('pesoTotal').value = numStr(s.peso); } }
+        else if (src === 'origem') {
+          if (s.animal) { f('qtd').value = '1'; if (s.animal.pesoAtual) f('pesoTotal').value = numStr(s.animal.pesoAtual); f('idade').value = idadeTxt(s.animal.nascimento); const p = PRODUTOS_VENDA[esp].find(p => p[0].toLowerCase().includes((s.animal.categoria||'').split(' ')[0].toLowerCase())); if (p) f('produto').value = p[0]; }
+          if (s.lote) { if (!num(f('qtd').value)) f('qtd').value = s.disp; if (s.lote.nascimento) f('idade').value = idadeTxt(s.lote.nascimento); const p = PRODUTOS_VENDA[esp].find(p => p[0] === s.lote.categoria); if (p) f('produto').value = p[0]; if (s.lote.pesoMedio && !num(f('pesoMedio').value)) f('pesoMedio').value = numStr(s.lote.pesoMedio); }
+        }
+        const q = num(f('qtd').value);
+        const pesos = (f('pesosInd').value||'').split(';').map(num).filter(x => x > 0);
+        if (src === 'pesosInd' && pesos.length) { f('pesoTotal').value = numStr(sum(pesos, x=>x)); if (!multi && !num(f('qtd').value)) f('qtd').value = pesos.length; }
+        if (src === 'pesoMedio' && q) f('pesoTotal').value = numStr(num(f('pesoMedio').value) * q);
+        else if (['pesoTotal','qtd','pesosInd','animal','origem'].includes(src) && q && num(f('pesoTotal').value)) f('pesoMedio').value = numStr(num(f('pesoTotal').value) / q);
+        else if (src === 'qtd' && num(f('pesoMedio').value)) f('pesoTotal').value = numStr(num(f('pesoMedio').value) * num(f('qtd').value));
+        const vc = num(f('valorCabeca').value), vk = num(f('valorKg').value), pt = num(f('pesoTotal').value);
+        let tot = num(f('valorTotal').value);
+        if (modo === 'cabeca' || modo === 'unidade') tot = round2(q * vc);
+        else if (modo === 'kg') tot = round2(pt * vk);
+        if (modo !== 'lote') f('valorTotal').value = numStr(tot);
+        f('valorTotal').readOnly = modo !== 'lote';
+        f('valorCabeca').closest('.fld').style.display = (modo === 'cabeca' || modo === 'unidade') ? '' : 'none';
+        f('valorKg').closest('.fld').style.display = modo === 'kg' ? '' : 'none';
+        const custo = multi ? s.custo : round2((s.custoUnit||0) * q);
+        const o = k => form.querySelector(`[data-o=${k}]`);
+        o('tot').textContent = R(tot); o('custo').textContent = R(custo);
+        o('luc').textContent = R(tot - custo); o('luc').style.color = tot - custo < 0 ? '#ffb4a3' : '#c9f0d6';
+        o('disp').textContent = s.disp != null ? N(s.disp)+' cab.' : '—';
+        ultimo = { tot, custo, s };
+      }
+      form.addEventListener('input', e => recalc(e.target.name));
+      form.addEventListener('change', e => recalc(e.target.name));
+      form._ultimo = () => ultimo;
+      recalc(multi ? 'animal' : 'origem');
+    },
+    async onSubmit(fd, form){
+      exigeEscrita();
+      const data = reqData(fd.data), modo = fd.modo, produto = reqTxt(fd.produto, 'o produto');
+      let animalIds = [], loteId = null, disp, custo = 0, origemTxt = '';
+      if (multi) {
+        animalIds = $$('input[name=animal]:checked', form).map(c => c.value);
+        if (!animalIds.length) throw new Error('Marque ao menos um animal.');
+        custo = sum(animalIds, id => byId('animais', id).valorAquisicao);
+        origemTxt = animalIds.map(id => byId('animais', id).ident).join(', ');
+      } else {
+        const o = fd.origem; if (!o) throw new Error('Selecione a origem da venda.');
+        if (o.startsWith('L:')) { loteId = o.slice(2); disp = saldoLote(loteId); origemTxt = 'lote ' + byId('lotes', loteId).codigo; }
+        else { const a = byId('animais', o.slice(2)); if (a.situacao !== 'ativo') throw new Error('Animal não está ativo.'); animalIds = [a.id]; disp = 1; custo = a.valorAquisicao || 0; origemTxt = a.ident; }
+      }
+      const q = multi ? animalIds.length : Math.round(reqPos(fd.qtd, 'a quantidade'));
+      if (!multi && q > disp) throw new Error(`Venda superior à quantidade disponível (${disp}).`);
+      if (loteId) custo = round2(custoMedioLote(loteId) * q);
+      const pt = num(fd.pesoTotal), pm = num(fd.pesoMedio) || (pt && q ? pt/q : 0);
+      const vc = num(fd.valorCabeca), vk = num(fd.valorKg);
+      let total = modo === 'kg' ? round2(pt * vk) : (modo === 'lote' ? num(fd.valorTotal) : round2(q * vc));
+      if (modo === 'kg' && !pt) throw new Error('Informe o peso total (ou peso médio) para venda por kg.');
+      if (!(total > 0)) throw new Error('Informe os valores da venda.');
+      const pago = pagoAgoraDe(fd, total); checaConta(fd, pago);
+      const cat = (PRODUTOS_VENDA[esp].find(p => p[0] === produto) || [0, CAT_RECEITA[ESPECIES[esp].atividade][0]])[1];
+      const mid = novoId('movimentacoes'), lid = novoId('lancamentos');
+      const pesos = (fd.pesosInd||'').split(';').map(num).filter(x => x > 0);
+      await criarMov({ especie:esp, tipo:'venda', data, loteId, animalIds, delta: loteId ? -q : 0, qtd:q, valor:total, peso:pt||null, lancamentoId:lid, contraparte:(fd.comprador||'').trim(), obs:(fd.obs||'').trim(),
+        venda:{ produto, modo, idade:(fd.idade||'').trim(), pesoMedio:pm?round2(pm):null, pesoTotal:pt||null, pesosInd:pesos, valorCabeca:vc||null, valorKg:vk||null, custo:round2(custo), lucro:round2(total-custo) } }, mid);
+      await criarLanc({ tipo:'receita', data, atividade:ESPECIES[esp].atividade, categoria:cat, descricao:`Venda ${produto} – ${q} cab. (${origemTxt})`, quantidade:q,
+        valorUnit: modo==='kg' ? vk : round2(total/q), valor:total, forma:fd.forma, contaId:fd.contaId, vencimento:fd.vencimento||data, contraparte:(fd.comprador||'').trim(),
+        origem:'venda', refId:mid, custoVendido:custo }, { id:lid, pagoAgora:pago, contaId:fd.contaId });
+      for (const id of animalIds) await dbUpd('animais', id, { situacao:'vendido', dataSaida:data });
+      toast(`Venda registrada: ${R(total)} · lucro ${R(total-custo)}`);
+      $$('#modal-root .mback').forEach(m => m.remove());
+    } });
+}
+
+/* ---------- Estorno de movimentação ---------- */
+async function estornarMov(m){
+  const lanc = m.lancamentoId ? byId('lancamentos', m.lancamentoId) : null;
+  // validações
+  if (m.loteId && (+m.delta||0) > 0 && saldoLote(m.loteId) - m.delta < 0) return toast('Estorno deixaria o lote com saldo negativo. Estorne primeiro as saídas posteriores.', true);
+  if (m.paraLoteId && saldoLote(m.paraLoteId) - (m.qtdTransf||0) < 0) return toast('Estorno deixaria o lote de destino com saldo negativo.', true);
+  if (m.cadastro && m.loteId && movsDoLote(m.loteId).some(x => x.id !== m.id)) return toast('Este é o registro de formação do lote. Estorne antes as demais movimentações do lote.', true);
+  if (m.cadastro && (m.animalIds||[]).some(id => movsDoAnimal(id).some(x => x.id !== m.id))) return toast('Este é o cadastro de entrada do animal. Estorne antes as demais movimentações dele.', true);
+  const ok = await confirmar(`Estornar <b>${esc(MOV_NOMES[m.tipo]||m.tipo)}</b> de ${D(m.data)}${m.valor?` (${R(m.valor)})`:''}?` +
+    (lanc ? `<br><br>O lançamento financeiro vinculado também será excluído${pagoDe(lanc)?` — inclusive ${R(pagoDe(lanc))} já ${lanc.tipo==='receita'?'recebidos':'pagos'}`:''}.` : '') +
+    (m.cadastro ? '<br><br>O cadastro do animal/lote também será removido.' : '') + '<br><br>O registro fica guardado na auditoria.', 'Estornar');
+  if (!ok) return;
+  try {
+    exigeEscrita();
+    await dbUpd('movimentacoes', m.id, { excluido:true, excluidoEm:stamp() });
+    if (lanc) await dbUpd('lancamentos', lanc.id, { excluido:true, excluidoEm:stamp() });
+    for (const id of (m.animalIds||[])) {
+      const a = byId('animais', id); if (!a) continue;
+      if (m.cadastro) await dbUpd('animais', id, { excluido:true, excluidoEm:stamp() });
+      else if (['venda','mortalidade','saida','descarte','ajuste'].includes(m.tipo)) await dbUpd('animais', id, { situacao:'ativo', dataSaida:null });
+      else if (m.tipo === 'transferencia' && a.local === m.para) await dbUpd('animais', id, { local:m.de||'' });
+      else if (m.tipo === 'categoria' && a.categoria === m.para) await dbUpd('animais', id, { categoria:m.de });
+      else if (m.tipo === 'pesagem' && a.pesoAtual === m.peso) await dbUpd('animais', id, { pesoAtual:m.pesoAnterior||null, dataPeso:m.pesoAnterior?m.dataAnterior:null });
+    }
+    if (m.loteId) {
+      const l = byId('lotes', m.loteId);
+      if (m.cadastro) await dbUpd('lotes', m.loteId, { excluido:true, excluidoEm:stamp() });
+      else if (l && m.tipo === 'local' && l.local === m.para) await dbUpd('lotes', m.loteId, { local:m.de||'' });
+      else if (l && (m.tipo === 'categoria' || m.tipo === 'desmame') && l.categoria === m.para) await dbUpd('lotes', m.loteId, { categoria:m.de });
+      if (l && l.situacao === 'encerrado') await dbUpd('lotes', m.loteId, { situacao:'ativo' });
+    }
+    await audit('estornar', 'movimentacoes', m.id, `${MOV_NOMES[m.tipo]||m.tipo} ${m.valor?R(m.valor):''}`);
+    toast('Movimentação estornada.');
+    $$('#modal-root .mback').forEach(x => x.remove());
+  } catch(e){ falha(e); }
+}
+
+/* ---------- Tabelas ---------- */
+function descMov(m){
+  const parts = [];
+  if (m.tipo === 'venda' && m.venda) parts.push(`${esc(m.venda.produto)} · ${m.venda.modo==='kg'?N(m.peso||m.venda.pesoTotal,1)+' kg × '+R(m.venda.valorKg):m.venda.modo==='lote'?'valor fechado':R(m.venda.valorCabeca)+'/cab.'}`);
+  if (m.de || m.para) parts.push(`${esc(m.de||'—')} → ${esc(m.para||'—')}`);
+  if (m.paraLoteId) parts.push(`→ lote ${esc((byId('lotes',m.paraLoteId)||{}).codigo||'?')}`);
+  if (m.tipo === 'pesagem') parts.push(`${N(m.peso,1)} kg${m.gmd!=null?` · GMD ${N(m.gmd,3)}`:''}`);
+  if (m.tipo === 'desmame' && m.pesoMedio) parts.push(`peso médio ${N(m.pesoMedio,1)} kg`);
+  if (m.causa) parts.push('Causa: '+esc(m.causa));
+  if (m.contraparte) parts.push(esc(m.contraparte));
+  if (m.obs) parts.push(`<span class="muted">${esc(m.obs)}</span>`);
+  return parts.join(' · ');
+}
+function alvoMov(m, loteRef){
+  if (m.loteId) { const l = byId('lotes', m.loteId); return (loteRef && m.paraLoteId === loteRef) ? `de ${esc(l?.codigo||'?')}` : `Lote ${esc(l?.codigo||'?')}`; }
+  return (m.animalIds||[]).map(id => esc((byId('animais', id)||{}).ident || '?')).join(', ');
+}
+function qtdMov(m, loteRef){
+  if (loteRef && m.paraLoteId === loteRef) return `<span class="pos">+${N(m.qtdTransf)}</span>`;
+  if (m.loteId) { const d = +m.delta||0; return d > 0 ? `<span class="pos">+${N(d)}</span>` : d < 0 ? `<span class="neg">${N(d)}</span>` : N(m.qtd||0); }
+  const neg = ['venda','mortalidade','saida','descarte','ajuste'].includes(m.tipo), pos = ['compra','nascimento','entrada'].includes(m.tipo);
+  return pos ? `<span class="pos">+${N(m.qtd)}</span>` : neg ? `<span class="neg">−${N(m.qtd)}</span>` : N(m.qtd||1);
+}
+function tabelaMovs(M, { compacta=false, loteRef=null } = {}){
+  if (!M.length) return `<div class="tw">${vazio('Nenhuma movimentação', '')}</div>`;
+  return `<div class="tw"><table><thead><tr><th>Data</th><th>Movimentação</th>${compacta?'':'<th>Espécie</th>'}<th>Animal / lote</th><th class="n">Qtd</th><th>Detalhes</th><th class="n">Valor</th><th></th></tr></thead><tbody>
+    ${M.slice(0,400).map(m => `<tr><td>${D(m.data)}</td><td><b>${esc(MOV_NOMES[m.tipo]||m.tipo)}</b></td>${compacta?'':`<td>${esc(ESPECIES[m.especie]?.nome||'')}</td>`}
+      <td>${alvoMov(m, loteRef)}</td><td class="n">${qtdMov(m, loteRef)}</td><td class="small">${descMov(m)}</td><td class="n">${m.valor?R(m.valor):''}</td>
+      <td><div class="acts"><button type="button" class="ico" data-act="estornar" data-id="${m.id}" title="Estornar">Estornar</button></div></td></tr>`).join('')}
+    </tbody></table></div>${M.length>400?'<p class="small muted">Mostrando as 400 mais recentes.</p>':''}`;
+}
+function tabelaVendas(esp){
+  const [ini, fim] = periodo('vd');
+  const V = movsValidas().filter(m => m.especie === esp && m.tipo === 'venda' && inRange(m.data, ini, fim)).sort((a,b)=>(b.data||'').localeCompare(a.data||''));
+  const rows = V.map(m => { const l = byId('lancamentos', m.lancamentoId); const v = m.venda||{};
+    return `<tr><td>${D(m.data)}</td><td>${esc(v.produto||'')}</td><td>${alvoMov(m)}</td><td class="n">${N(m.qtd)}</td><td class="n">${m.peso?N(m.peso,1)+' kg':'—'}</td>
+      <td class="n">${v.modo==='kg'?R(v.valorKg)+'/kg':v.modo==='lote'?'lote':R(v.valorCabeca)+'/cab.'}</td><td class="n"><b>${R(m.valor)}</b></td><td class="n">${R(v.custo)}</td><td class="n ${v.lucro<0?'neg':'pos'}">${R(v.lucro)}</td>
+      <td>${esc(m.contraparte||'')}</td><td>${l?badgeStatus(statusL(l)):''}</td>
+      <td><div class="acts">${l&&!quitado(l)?`<button class="ico" data-act="pagar" data-id="${l.id}">Receber</button>`:''}<button class="ico" data-act="estornar" data-id="${m.id}">Estornar</button></div></td></tr>`; }).join('');
+  const tq = sum(V,m=>m.qtd), tv = sum(V,m=>m.valor), tc = sum(V,m=>(m.venda||{}).custo), tp = sum(V,m=>m.peso);
+  return `<div class="bar">${filtroPeriodo('vd')}<button class="btn gold" data-act="vender" data-esp="${esp}">+ Nova venda</button>
+      ${esp!=='bovino'?`<button class="btn ghost" data-act="outraReceita" data-atv="${ESPECIES[esp].atividade}">+ Outra receita (esterco…)</button>`:''}
+      <button class="btn ghost" data-act="expVendas" data-esp="${esp}">Exportar Excel</button></div>
+    <div class="grid g4" style="margin-bottom:14px">${kpi('Cabeças vendidas', N(tq))}${kpi('Receita', R(tv), '', 'green')}${kpi('Preço médio', tq?R(tv/tq)+'/cab.':'—', tp?R(tv/tp)+'/kg':'')}${kpi('Lucro s/ aquisição', R(tv-tc), 'custo '+R(tc), tv-tc<0?'red':'gold')}</div>
+    ${V.length ? `<div class="tw"><table><thead><tr><th>Data</th><th>Produto</th><th>Origem</th><th class="n">Qtd</th><th class="n">Peso</th><th class="n">Preço</th><th class="n">Total</th><th class="n">Custo</th><th class="n">Lucro</th><th>Comprador</th><th>Receb.</th><th></th></tr></thead><tbody>${rows}</tbody>
+      <tfoot><tr><td colspan="3">${V.length} venda(s)</td><td class="n">${N(tq)}</td><td class="n">${tp?N(tp,1)+' kg':''}</td><td></td><td class="n">${R(tv)}</td><td class="n">${R(tc)}</td><td class="n">${R(tv-tc)}</td><td colspan="3"></td></tr></tfoot></table></div>`
+      : `<div class="tw">${vazio('Nenhuma venda no período')}</div>`}`;
+}
+function abaMovs(esp){
+  const [ini, fim] = periodo('mv'); const tipo = uiGet('mvTipo','');
+  const M = movsValidas().filter(m => m.especie === esp && inRange(m.data, ini, fim) && (!tipo || m.tipo === tipo)).sort((a,b)=>(b.data||'').localeCompare(a.data||'')||(b.criadoEm||'').localeCompare(a.criadoEm||''));
+  const tiposPresentes = [...new Set(movsValidas().filter(m=>m.especie===esp).map(m=>m.tipo))];
+  return `<div class="bar">${filtroPeriodo('mv')}<label class="fld"><span>Tipo</span><select data-filter="mvTipo">${opts(tiposPresentes.map(t=>[t,MOV_NOMES[t]||t]), tipo, 'Todos')}</select></label>
+    <button class="btn ghost" data-act="expMovs" data-esp="${esp}">Exportar Excel</button></div>${tabelaMovs(M, { compacta:true })}`;
+}
+
+/* ---------- Páginas de espécies ---------- */
+function resumoEspecie(esp){
+  const [ini, fim] = [mesIni(), mesFim()];
+  const M = movsValidas().filter(m => m.especie === esp && inRange(m.data, ini, fim));
+  const q = t => sum(M.filter(m => m.tipo === t), m => m.qtd);
+  return `<div class="grid g5" style="margin-bottom:16px">
+    ${kpi('Cabeças ativas', N(cabecas(esp)), esp==='galinha'?lotesAtivos(esp).length+' lote(s)':(esp==='suino'?`${indAtivos(esp).length} individuais · ${lotesAtivos(esp).length} lotes`:''), 'gold')}
+    ${kpi('Nascimentos no mês', N(q('nascimento')), '', 'green')}${kpi('Mortalidades no mês', N(q('mortalidade')), '', 'red')}
+    ${kpi('Compras no mês', N(q('compra')))}${kpi('Vendas no mês', N(q('venda')), R(sum(M.filter(m=>m.tipo==='venda'),m=>m.valor)), 'blue')}</div>`;
+}
+function tabelaIndividuais(esp){
+  const sit = uiGet(esp+'Sit','ativo'), cat = uiGet(esp+'Cat',''), loc = uiGet(esp+'Loc',''), q = (uiGet(esp+'Q','')||'').toLowerCase();
+  const all = A('animais').filter(a => a.especie === esp);
+  const L = all.filter(a => (!sit || a.situacao === sit) && (!cat || a.categoria === cat) && (!loc || a.local === loc) && (!q || `${a.ident} ${a.nome} ${a.raca}`.toLowerCase().includes(q)))
+    .sort((a,b) => a.ident.localeCompare(b.ident, 'pt', { numeric:true }));
+  const porCat = {}; for (const a of all.filter(a=>a.situacao==='ativo')) porCat[a.categoria] = (porCat[a.categoria]||0)+1;
+  return `${Object.keys(porCat).length ? `<div class="chips" style="margin-bottom:12px">${Object.entries(porCat).map(([c,n])=>`<button class="chip ${cat===c?'on':''}" data-act="setf" data-k="${esp}Cat" data-v="${cat===c?'':esc(c)}">${esc(c)}: <b>${n}</b></button>`).join('')}</div>` : ''}
+    <div class="bar"><button class="btn primary" data-act="novoAnimal" data-esp="${esp}">+ Novo ${ESPECIES[esp].sing.toLowerCase()}</button>
+      ${esp==='bovino'?`<button class="btn gold" data-act="vender" data-esp="bovino">Vender</button>`:''}
+      <label class="fld"><span>Situação</span><select data-filter="${esp}Sit">${opts([['ativo','Ativos'],['vendido','Vendidos'],['morto','Mortos'],['baixado','Baixados']], sit, 'Todos')}</select></label>
+      <label class="fld"><span>Categoria</span><select data-filter="${esp}Cat">${opts(catsAnimal(esp), cat, 'Todas')}</select></label>
+      <label class="fld"><span>${LOCAL_LBL[esp]}</span><select data-filter="${esp}Loc">${opts([...new Set(all.map(a=>a.local).filter(Boolean))], loc, 'Todos')}</select></label>
+      <label class="fld grow"><span>Buscar</span><input data-filter="${esp}Q" value="${esc(uiGet(esp+'Q',''))}" placeholder="brinco, nome, raça"></label>
+      <button class="btn ghost" data-act="expAnimais" data-esp="${esp}">Exportar Excel</button></div>
+    ${L.length ? `<div class="tw"><table><thead><tr><th>${esp==='bovino'?'Brinco':'Identificação'}</th><th>Nome</th><th>Raça</th><th>Sexo</th><th>Categoria</th><th>Idade</th><th class="n">Peso atual</th><th>${LOCAL_LBL[esp]}</th><th>Situação</th><th></th></tr></thead><tbody>
+      ${L.map(a => `<tr><td><b>${esc(a.ident)}</b></td><td>${esc(a.nome)}</td><td>${esc(a.raca)}</td><td>${esc(a.sexo)}</td><td>${esc(a.categoria)}</td><td>${idadeTxt(a.nascimento)}</td>
+        <td class="n">${a.pesoAtual?N(a.pesoAtual,1)+' kg':'—'}</td><td>${esc(a.local||'—')}</td><td>${situacaoBadge(a.situacao)}</td>
+        <td><div class="acts"><button class="ico" data-act="ficha" data-id="${a.id}">Ficha</button></div></td></tr>`).join('')}
+      </tbody><tfoot><tr><td colspan="6">${L.length} animal(is)</td><td class="n">${N(sum(L,a=>a.pesoAtual),0)} kg</td><td colspan="3"></td></tr></tfoot></table></div>`
+      : `<div class="tw">${vazio(all.length ? 'Nenhum animal com esses filtros' : `Nenhum ${ESPECIES[esp].sing.toLowerCase()} cadastrado`, all.length ? '' : 'Clique em “Novo” para cadastrar o primeiro animal.')}</div>`}`;
+}
+function tabelaLotes(esp){
+  const sit = uiGet(esp+'LSit','ativo');
+  const L = A('lotes').filter(l => l.especie === esp && (!sit || (sit === 'ativo' ? l.situacao !== 'encerrado' : l.situacao === 'encerrado'))).sort((a,b)=>(b.dataEntrada||'').localeCompare(a.dataEntrada||''));
+  return `<div class="bar"><button class="btn primary" data-act="novoLote" data-esp="${esp}">+ Novo lote</button>
+      <button class="btn gold" data-act="vender" data-esp="${esp}">Vender</button>
+      <label class="fld"><span>Situação</span><select data-filter="${esp}LSit">${opts([['ativo','Ativos'],['encerrado','Encerrados']], sit, 'Todos')}</select></label></div>
+    ${L.length ? `<div class="tw"><table><thead><tr><th>Lote</th><th>${esp==='galinha'?'Tipo de criação':'Categoria'}</th><th>Raça</th><th>Idade</th><th>${LOCAL_LBL[esp]}</th><th>Entrada</th><th class="n">Inicial</th><th class="n">Saldo</th><th class="n">Custo/cab.</th><th></th></tr></thead><tbody>
+      ${L.map(l => { const s = saldoLote(l.id); return `<tr><td><b>${esc(l.codigo)}</b>${l.situacao==='encerrado'?' <span class="badge b-mut">encerrado</span>':''}</td><td>${esc(l.categoria)}</td><td>${esc(l.raca)}</td><td>${idadeTxt(l.nascimento)}</td><td>${esc(l.local||'—')}</td>
+        <td>${D(l.dataEntrada)}</td><td class="n">${N(l.qtdInicial)}</td><td class="n"><b>${N(s)}</b></td><td class="n">${custoMedioLote(l.id)?R(custoMedioLote(l.id)):'—'}</td>
+        <td><div class="acts"><button class="ico" data-act="fichaLote" data-id="${l.id}">Abrir</button></div></td></tr>`; }).join('')}
+      </tbody><tfoot><tr><td colspan="7">${L.length} lote(s)</td><td class="n">${N(sum(L, l=>saldoLote(l.id)))}</td><td colspan="2"></td></tr></tfoot></table></div>`
+      : `<div class="tw">${vazio('Nenhum lote', 'Cadastre um lote para controlar os animais por grupo, sem cadastro individual.')}</div>`}`;
+}
+function pgBovinos(){
+  const t = uiGet('bovTab','rebanho');
+  return resumoEspecie('bovino') + tabs('bovTab', [['rebanho','Rebanho'],['vendas','Vendas'],['movs','Movimentações']], 'rebanho') +
+    (t === 'rebanho' ? tabelaIndividuais('bovino') : t === 'vendas' ? tabelaVendas('bovino') : abaMovs('bovino'));
+}
+function pgSuinos(){
+  const t = uiGet('suiTab','lotes');
+  return resumoEspecie('suino') + tabs('suiTab', [['lotes','Lotes'],['plantel','Plantel individual (matrizes e reprodutores)'],['vendas','Comercialização'],['movs','Movimentações']], 'lotes') +
+    (t === 'lotes' ? tabelaLotes('suino') : t === 'plantel' ? tabelaIndividuais('suino') : t === 'vendas' ? tabelaVendas('suino') : abaMovs('suino'));
+}
+function pgGalinhas(){
+  const t = uiGet('galTab','lotes');
+  return resumoEspecie('galinha') + tabs('galTab', [['lotes','Lotes'],['ovos','Produção de ovos'],['vendas','Vendas de aves'],['movs','Movimentações']], 'lotes') +
+    (t === 'lotes' ? tabelaLotes('galinha') : t === 'ovos' ? abaOvos() : t === 'vendas' ? tabelaVendas('galinha') : abaMovs('galinha'));
+}
+
+/* ---------- Ovos ---------- */
+const estoqueOvos = (excluirId) => sum(A('ovos').filter(o => o.id !== excluirId), o => (+o.produzidos||0) - (+o.vendidos||0) - (+o.consumidos||0) - (+o.perdidos||0));
+function abrirOvos(){
+  const lotes = lotesAtivos('galinha');
+  modal({ title:'Registro de produção de ovos', submit:'Registrar',
+    html:`<div class="fg">${fDate('data','Data')}
+      <label class="fld"><span>Lote / galinheiro</span><select name="loteId">${opts(lotes.map(l=>[l.id, nomeLote(l)+(l.local?' · '+l.local:'')]), lotes[0]?.id, 'Sem lote específico')}</select></label>
+      ${fNum('produzidos','Ovos produzidos (unidades)','')}${fNum('vendidos','Ovos vendidos (unidades)','')}
+      ${fNum('consumidos','Consumidos na propriedade','')}${fNum('perdidos','Perdidos / quebrados','')}
+      ${fNum('precoDuzia','Preço de venda por dúzia (R$)','')}${fInp('comprador','Comprador','')}</div>
+      <div class="calc" style="margin-top:14px"><div><span>Receita</span><b data-o="rec">R$ 0,00</b></div><div><span>Estoque atual</span><b>${N(estoqueOvos())} ovos</b></div><div><span>Estoque após</span><b data-o="est">—</b></div></div>
+      <div data-w="pg">${blocoPagamento('receita')}</div>${fTxt('obs','Observações','')}`,
+    onInit(form){
+      wirePagamento(form); const f = n => num(form.elements[n].value);
+      const upd = () => { const rec = round2(f('vendidos')/12*f('precoDuzia')); form.querySelector('[data-o=rec]').textContent = R(rec);
+        form.querySelector('[data-o=est]').textContent = N(estoqueOvos() + f('produzidos') - f('vendidos') - f('consumidos') - f('perdidos')) + ' ovos';
+        form.querySelector('[data-w=pg]').style.display = f('vendidos') > 0 ? '' : 'none'; };
+      form.addEventListener('input', upd); upd();
+    },
+    async onSubmit(fd){
+      exigeEscrita(); const data = reqData(fd.data);
+      const p = Math.round(num(fd.produzidos)), v = Math.round(num(fd.vendidos)), c = Math.round(num(fd.consumidos)), pe = Math.round(num(fd.perdidos)), pd = num(fd.precoDuzia);
+      if (p+v+c+pe <= 0) throw new Error('Informe ao menos uma quantidade.');
+      if (estoqueOvos() + p - v - c - pe < 0) throw new Error(`Saídas maiores que o estoque disponível (${N(estoqueOvos()+p)} ovos).`);
+      const valor = round2(v/12*pd);
+      if (v > 0 && !(pd > 0)) throw new Error('Informe o preço por dúzia dos ovos vendidos.');
+      const oid = novoId('ovos'), lid = valor > 0 ? novoId('lancamentos') : null;
+      const pago = valor > 0 ? pagoAgoraDe(fd, valor) : 0; checaConta(fd, pago);
+      await dbSet('ovos', oid, { data, loteId:fd.loteId||null, produzidos:p, vendidos:v, consumidos:c, perdidos:pe, precoDuzia:pd||null, valorVenda:valor||null, comprador:(fd.comprador||'').trim(), lancamentoId:lid, obs:(fd.obs||'').trim() });
+      await audit('criar','ovos',oid,`${p} produzidos / ${v} vendidos`);
+      if (lid) await criarLanc({ tipo:'receita', data, atividade:'galinhas', categoria:'Venda de ovos', descricao:`Venda de ${N(v)} ovos (${N(v/12,1)} dz)`, quantidade:round2(v/12), valorUnit:pd, valor,
+        forma:fd.forma, contaId:fd.contaId, vencimento:fd.vencimento||data, contraparte:(fd.comprador||'').trim(), origem:'ovos', refId:oid }, { id:lid, pagoAgora:pago, contaId:fd.contaId });
+      toast('Produção registrada.');
+    } });
+}
+async function excluirOvos(o){
+  if (estoqueOvos(o.id) < 0) return toast('Excluir este registro deixaria o estoque de ovos negativo.', true);
+  if (!(await confirmar(`Excluir o registro de ovos de ${D(o.data)}?${o.lancamentoId?' A receita vinculada também será excluída.':''}`, 'Excluir'))) return;
+  try { exigeEscrita(); await dbUpd('ovos', o.id, { excluido:true, excluidoEm:stamp() });
+    if (o.lancamentoId) await dbUpd('lancamentos', o.lancamentoId, { excluido:true, excluidoEm:stamp() });
+    await audit('excluir','ovos',o.id,D(o.data)); toast('Registro excluído.'); } catch(e){ falha(e); }
+}
+function abaOvos(){
+  const [ini, fim] = periodo('ov');
+  const O = A('ovos').filter(o => inRange(o.data, ini, fim)).sort((a,b)=>(b.data||'').localeCompare(a.data||''));
+  const prod = sum(O,o=>o.produzidos), vend = sum(O,o=>o.vendidos), rec = sum(O,o=>o.valorVenda);
+  const e = econ(ini, fim, 'galinhas');
+  const aves = cabecas('galinha');
+  const custoDz = prod ? e.oper / (prod/12) : 0;
+  return `<div class="bar">${filtroPeriodo('ov')}<button class="btn primary" data-act="novoOvos">+ Registrar produção / venda</button></div>
+    <div class="grid g5" style="margin-bottom:14px">${kpi('Produzidos', N(prod), N(prod/12,1)+' dúzias', 'gold')}${kpi('Vendidos', N(vend), R(rec), 'green')}
+      ${kpi('Estoque de ovos', N(estoqueOvos()), 'saldo acumulado')}${kpi('Custo por dúzia', prod?R(custoDz):'—', 'custos operacionais galinhas', 'red')}${kpi('Custo por ave', aves?R(e.oper/aves):'—', aves+' aves ativas', 'blue')}</div>
+    ${O.length ? `<div class="tw"><table><thead><tr><th>Data</th><th>Lote</th><th class="n">Produzidos</th><th class="n">Vendidos</th><th class="n">Consumidos</th><th class="n">Perdidos</th><th class="n">R$/dúzia</th><th class="n">Receita</th><th>Comprador</th><th></th></tr></thead><tbody>
+      ${O.map(o => `<tr><td>${D(o.data)}</td><td>${esc(nomeLote(byId('lotes',o.loteId)) )}</td><td class="n">${N(o.produzidos)}</td><td class="n">${N(o.vendidos)}</td><td class="n">${N(o.consumidos)}</td><td class="n">${N(o.perdidos)}</td>
+        <td class="n">${o.precoDuzia?R(o.precoDuzia):''}</td><td class="n">${o.valorVenda?R(o.valorVenda):''}</td><td>${esc(o.comprador||'')}</td><td><div class="acts"><button class="ico" data-act="delOvos" data-id="${o.id}">Excluir</button></div></td></tr>`).join('')}
+      </tbody><tfoot><tr><td colspan="2">Total</td><td class="n">${N(prod)}</td><td class="n">${N(vend)}</td><td class="n">${N(sum(O,o=>o.consumidos))}</td><td class="n">${N(sum(O,o=>o.perdidos))}</td><td></td><td class="n">${R(rec)}</td><td colspan="2"></td></tr></tfoot></table></div>`
+      : `<div class="tw">${vazio('Nenhum registro de ovos no período')}</div>`}`;
+}
+
+/* =====================================================================
+   Dashboard · Despesas Gerais · Configurações · páginas futuras · roteador
+   ===================================================================== */
+function chartOpts({ legend=true, money=true, stacked=false, horizontal=false } = {}){
+  const fmt = v => money ? R0(v) : N(v);
+  return { responsive:true, maintainAspectRatio:false, indexAxis: horizontal ? 'y' : 'x',
+    interaction:{ mode: horizontal ? 'nearest' : 'index', intersect:false },
+    plugins:{ legend:{ display:legend, position:'bottom', labels:{ boxWidth:10, boxHeight:10, useBorderRadius:true, borderRadius:2, font:{ family:'Inter', size:11.5 }, color:'#4d5650' } },
+      tooltip:{ backgroundColor:'#16301f', titleFont:{ family:'Inter', weight:'600' }, bodyFont:{ family:'Inter' }, padding:10, cornerRadius:8,
+        callbacks:{ label: c => ` ${c.dataset.label ? c.dataset.label+': ' : ''}${fmt(horizontal ? c.parsed.x : c.parsed.y)}` } } },
+    scales:{
+      x:{ stacked, grid:{ display: horizontal, color:'#eef0ea' }, border:{ display:false }, ticks:{ font:{ family:'Inter', size:11 }, color:'#7b847e', ...(horizontal ? { callback: v => fmt(v), maxTicksLimit:6 } : {}) } },
+      y:{ stacked, grid:{ display: !horizontal, color:'#eef0ea' }, border:{ display:false }, ticks:{ font:{ family:'Inter', size:11 }, color:'#7b847e', ...(horizontal ? {} : { callback: v => fmt(v), maxTicksLimit:7 }) }, beginAtZero:true } } };
+}
+const barDs = (label, data, color) => ({ label, data, backgroundColor:color, borderRadius:4, borderSkipped:'start', maxBarThickness:34, categoryPercentage:.7, barPercentage:.9, borderColor:'#fff', borderWidth:{ left:1, right:1 } });
+function mkChart(id, cfgc){ const el = document.getElementById(id); if (!el || !window.Chart) return; S.charts.push(new Chart(el, cfgc)); }
+
+function pgDashboard(){
+  const [ini, fim] = periodo('db'); const atv = uiGet('dbAtv','');
+  const e = econ(ini, fim, atv || null);
+  const cx = caixa(ini, fim, l => !atv || l.atividade === atv);
+  const ap = sum(abertos('despesa'), restante), ar = sum(abertos('receita'), restante);
+  const tudo = econ('', '', null);
+  const invInfra = sum(A('lancamentos').filter(l => l.tipo==='despesa' && CLASSIF_INV.includes(l.classificacao) && !Object.values(COMPRA_CAT).includes(l.categoria)), l => l.valor);
+  const invAnimais = sum(A('lancamentos').filter(l => l.tipo==='despesa' && Object.values(COMPRA_CAT).includes(l.categoria)), l => l.valor);
+  const ve = S.cfg.valorEstimado || {};
+  const plantel = cabecas('bovino')*(+ve.bovino||0) + cabecas('suino')*(+ve.suino||0) + cabecas('galinha')*(+ve.galinha||0);
+  const saldo = saldoTotal();
+  const patrimonio = saldo + ar - ap + invInfra + plantel;
+  // Animais no período
+  const M = movsValidas().filter(m => inRange(m.data, ini, fim) && (!atv || ESPECIES[m.especie]?.atividade === atv));
+  const qm = t => sum(M.filter(m => m.tipo === t), m => m.qtd);
+  const alertas = [];
+  const venc = abertos('despesa').filter(l => statusL(l) === 'vencido'); if (venc.length) alertas.push(['err', `${venc.length} conta(s) a pagar vencida(s): ${R(sum(venc, restante))}`]);
+  const vr = abertos('receita').filter(l => statusL(l) === 'vencido'); if (vr.length) alertas.push(['', `${vr.length} recebimento(s) atrasado(s): ${R(sum(vr, restante))}`]);
+  if (!A('contas').length) alertas.push(['', 'Cadastre suas contas financeiras (Financeiro › Contas financeiras) para acompanhar o saldo disponível.']);
+  for (const c of A('contas')) if (saldoConta(c) < 0) alertas.push(['err', `Conta “${c.nome}” com saldo negativo: ${R(saldoConta(c))}`]);
+  const vazioSis = !A('lancamentos').length && !A('animais').length && !A('lotes').length;
+  return `<div class="bar">${filtroPeriodo('db')}
+      <label class="fld"><span>Atividade</span><select data-filter="dbAtv">${opts(Object.entries(ATIVIDADES), atv, 'Todas')}</select></label></div>
+    ${vazioSis ? `<div class="card" style="margin-bottom:16px;border-left:3px solid var(--ouro)"><h3>Bem-vindo à Estância 78</h3>
+      <p style="margin:0 0 10px;color:var(--tx2);line-height:1.6">Para começar: 1) cadastre suas contas em <b>Financeiro › Contas financeiras</b>; 2) cadastre o rebanho em <b>Bovinos</b>, os lotes em <b>Suínos</b> e <b>Galinhas</b> (use “Inventário inicial” para animais que já estão na propriedade); 3) lance as despesas do dia a dia em <b>Financeiro</b> e <b>Despesas Gerais</b>.</p>
+      <div class="btnrow" style="margin:0"><button class="btn primary" data-act="novaConta">Cadastrar conta</button><button class="btn ghost" data-act="go" data-p="bovinos">Ir para Bovinos</button></div></div>` : ''}
+    ${alertas.length ? `<div class="alerts" style="margin-bottom:14px">${alertas.map(([c,t]) => `<div class="${c}">${esc(t)}</div>`).join('')}</div>` : ''}
+    <div class="section-t">Financeiro · ${D(ini)||'início'} a ${D(fim)||'hoje'}</div>
+    <div class="grid g5">
+      ${kpi('Receitas', R(e.rec), 'competência', 'green')}
+      ${kpi('Despesas', R(e.desp), `oper. ${R0(e.oper)} · gerais ${R0(e.ger)}`, 'red')}
+      ${kpi('Resultado líquido', `<span class="${e.res<0?'neg':'pos'}">${R(e.res)}</span>`, e.cmv?`após custo de animais vendidos ${R0(e.cmv)}`:'receitas − custos − despesas gerais', 'gold')}
+      ${kpi('Fluxo de caixa', `<span class="${cx.liq<0?'neg':''}">${R(cx.liq)}</span>`, `entradas ${R0(cx.ent)} · saídas ${R0(cx.sai)}`, 'blue')}
+      ${kpi('Investimentos no período', R(e.inv), 'infraestrutura e aquisições')}
+      ${kpi('Saldo disponível', R(saldo), A('contas').length+' conta(s)', 'gold')}
+      ${kpi('Contas a pagar', R(ap), abertos('despesa').length+' em aberto', 'red')}
+      ${kpi('Contas a receber', R(ar), abertos('receita').length+' em aberto', 'green')}
+      ${kpi('Total investido', R(invInfra+invAnimais), `estruturas ${R0(invInfra)} · animais ${R0(invAnimais)}`)}
+      ${kpi('Patrimônio estimado', R(patrimonio), 'saldo + a receber − a pagar + estruturas + plantel', 'gold')}
+    </div>
+    <div class="section-t">Animais</div>
+    <div class="grid g5">
+      ${kpi('Total de animais ativos', N(cabecas('bovino')+cabecas('suino')+cabecas('galinha')), `plantel estimado ${R0(plantel)}`, 'gold')}
+      ${kpi('Bovinos', N(cabecas('bovino')), '', 'green')}${kpi('Suínos', N(cabecas('suino')), '', 'red')}${kpi('Galinhas', N(cabecas('galinha')), '', 'blue')}
+      ${kpi('Nascimentos', N(qm('nascimento')), 'no período', 'green')}
+      ${kpi('Mortalidades', N(qm('mortalidade')), 'no período', 'red')}${kpi('Compras', N(qm('compra')), 'cabeças no período')}${kpi('Vendas', N(qm('venda')), 'cabeças no período', 'blue')}
+      ${kpi('Transferências', N(M.filter(m=>['transferencia','local'].includes(m.tipo)).length), 'movimentações internas')}${kpi('Estoque de ovos', N(estoqueOvos()), 'unidades')}
+    </div>
+    <div class="section-t">Gráficos gerenciais</div>
+    <div class="grid g2">
+      <div class="card"><h3>Receitas x despesas por mês<span class="hint">12 meses até ${D(fim||hoje()).slice(3)}</span></h3><div class="chart-box"><canvas id="chRD"></canvas></div></div>
+      <div class="card"><h3>Resultado financeiro mensal<span class="hint">receitas − custos − despesas gerais</span></h3><div class="chart-box"><canvas id="chRes"></canvas></div></div>
+      <div class="card"><h3>Despesas por categoria<span class="hint">período · sem investimentos</span></h3><div class="chart-box"><canvas id="chCat"></canvas></div></div>
+      <div class="card"><h3>Custos por atividade<span class="hint">período · operacionais + gerais</span></h3><div class="chart-box"><canvas id="chAtv"></canvas></div></div>
+      <div class="card"><h3>Rentabilidade por atividade<span class="hint">período</span></h3><div class="chart-box"><canvas id="chRent"></canvas></div></div>
+      <div class="card"><h3>Animais por espécie<span class="hint">cabeças ativas</span></h3><div class="chart-box"><canvas id="chEsp"></canvas></div></div>
+    </div>`;
+}
+function afterDashboard(){
+  const [ini, fim] = periodo('db'); const atv = uiGet('dbAtv','') || null;
+  const ref = (fim || hoje()).slice(0,7) + '-01';
+  const meses = Array.from({ length:12 }, (_, i) => addMeses(ref, i-11).slice(0,7));
+  const em = meses.map(m => econ(m+'-01', mesFim(m+'-01'), atv));
+  mkChart('chRD', { type:'bar', data:{ labels:meses.map(mesLabel), datasets:[ barDs('Receitas', em.map(x=>x.rec), CORES.receita), barDs('Despesas', em.map(x=>x.desp+x.cmv), CORES.despesa) ] }, options:chartOpts() });
+  mkChart('chRes', { type:'line', data:{ labels:meses.map(mesLabel), datasets:[{ label:'Resultado', data:em.map(x=>x.res), borderColor:'#1f3d2b', backgroundColor:'#1f3d2b', borderWidth:2, pointRadius:4, pointHoverRadius:6, tension:.25,
+    segment:{ borderColor: c => c.p1.parsed.y < 0 ? CORES.despesa : '#1f3d2b' }, pointBackgroundColor: em.map(x => x.res < 0 ? CORES.despesa : '#1f3d2b') }] }, options:chartOpts({ legend:false }) });
+  const L = A('lancamentos').filter(l => l.tipo === 'despesa' && inRange(l.data, ini, fim) && CLASSIF_ECON.includes(l.classificacao) && (!atv || l.atividade === atv));
+  const porCat = {}; for (const l of L) porCat[l.categoria] = (porCat[l.categoria]||0) + (+l.valor||0);
+  let cats = Object.entries(porCat).sort((a,b) => b[1]-a[1]);
+  if (cats.length > 9) { const outros = cats.slice(8).reduce((s,x)=>s+x[1],0); cats = [...cats.slice(0,8), ['Outras', outros]]; }
+  mkChart('chCat', { type:'bar', data:{ labels:cats.map(c=>c[0]), datasets:[ barDs('Despesas', cats.map(c=>round2(c[1])), '#6b7a3a') ] }, options:chartOpts({ legend:false, horizontal:true }) });
+  const atvs = Object.keys(ATIVIDADES);
+  const ea = atvs.map(a => econ(ini, fim, a));
+  mkChart('chAtv', { type:'bar', data:{ labels:atvs.map(a=>ATIVIDADES[a]), datasets:[{ ...barDs('Custos', ea.map(x=>x.oper+x.ger), atvs.map(a=>CORES[a])) }] }, options:chartOpts({ legend:false }) });
+  const a3 = ['bovinos','suinos','galinhas'], e3 = a3.map(a => econ(ini, fim, a));
+  mkChart('chRent', { type:'bar', data:{ labels:a3.map(a=>ATIVIDADES[a]), datasets:[ barDs('Receita', e3.map(x=>x.rec), CORES.receita), barDs('Custos', e3.map(x=>x.oper+x.ger+x.cmv), CORES.despesa), barDs('Resultado', e3.map(x=>x.res), '#a8780a') ] }, options:chartOpts() });
+  mkChart('chEsp', { type:'bar', data:{ labels:['Bovinos','Suínos','Galinhas'], datasets:[{ ...barDs('Cabeças', [cabecas('bovino'), cabecas('suino'), cabecas('galinha')], [CORES.bovinos, CORES.suinos, CORES.galinhas]) }] }, options:chartOpts({ legend:false, money:false }) });
+}
+
+/* ---------- Despesas Gerais ---------- */
+function pgDespesasGerais(){
+  const [ini, fim] = periodo('dg'); const grp = uiGet('dgGrupo',''), cl = uiGet('dgClass','');
+  const all = A('lancamentos').filter(l => l.tipo === 'despesa' && l.atividade === 'geral');
+  const P = all.filter(l => inRange(l.data, ini, fim));
+  const L = P.filter(l => (!grp || l.grupo === grp) && (!cl || l.classificacao === cl)).sort((a,b)=>(b.data||'').localeCompare(a.data||''));
+  const gk = Object.keys(GRUPOS_GERAIS);
+  const porLocal = {}; for (const l of P) if (l.local) porLocal[l.local] = (porLocal[l.local]||0) + (+l.valor||0);
+  return `<div class="bar"><button class="btn primary" data-act="novoGasto">+ Novo gasto da propriedade</button>${filtroPeriodo('dg')}
+      <label class="fld"><span>Grupo</span><select data-filter="dgGrupo">${opts(gk.map(k=>[k,GRUPOS_GERAIS[k].nome]), grp, 'Todos')}</select></label>
+      <label class="fld"><span>Classificação</span><select data-filter="dgClass">${opts(Object.entries(CLASSIF), cl, 'Todas')}</select></label>
+      <button class="btn ghost" data-act="expGerais">Exportar Excel</button></div>
+    <div class="section-t">No período</div>
+    <div class="grid g5">${gk.map(k => kpi(GRUPOS_GERAIS[k].nome, R(sum(P.filter(l=>l.grupo===k), l=>l.valor)), `acumulado ${R0(sum(all.filter(l=>l.grupo===k), l=>l.valor))}`)).join('')}
+      ${kpi('Total do período', R(sum(P, l=>l.valor)), `acumulado ${R0(sum(all, l=>l.valor))}`, 'gold')}</div>
+    <div class="section-t">Por classificação (período)</div>
+    <div class="grid g5">${Object.entries(CLASSIF).map(([k,t]) => kpi(t, R(sum(P.filter(l=>l.classificacao===k), l=>l.valor)), `acumulado ${R0(sum(all.filter(l=>l.classificacao===k), l=>l.valor))}`, CLASSIF_INV.includes(k)?'blue':'')).join('')}</div>
+    ${Object.keys(porLocal).length ? `<div class="section-t">Por estrutura / local (período)</div><div class="chips" style="margin-bottom:6px">${Object.entries(porLocal).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<span class="chip">${esc(k)}: <b>${R(v)}</b></span>`).join('')}</div>` : ''}
+    <div class="section-t">Lançamentos</div>
+    ${L.length ? `<div class="tw"><table><thead><tr><th>Data</th><th>Grupo</th><th>Item</th><th>Classificação</th><th>Descrição</th><th>Local</th><th class="n">Valor</th><th>Situação</th><th></th></tr></thead><tbody>
+      ${L.map(l => `<tr><td>${D(l.data)}</td><td>${esc((GRUPOS_GERAIS[l.grupo]||{}).nome||'—')}</td><td>${esc(l.categoria)}</td><td><span class="badge ${CLASSIF_INV.includes(l.classificacao)?'b-par':'b-mut'}">${esc(CLASSIF[l.classificacao]||'')}</span></td>
+        <td>${esc(l.descricao)}${l.contraparte?`<div class="small muted">${esc(l.contraparte)}</div>`:''}</td><td>${esc(l.local||'')}</td><td class="n">${R(l.valor)}</td><td>${badgeStatus(statusL(l))}</td>
+        <td><div class="acts">${!quitado(l)?`<button class="ico" data-act="pagar" data-id="${l.id}">Pagar</button>`:''}<button class="ico" data-act="editLanc" data-id="${l.id}">Editar</button><button class="ico" data-act="delLanc" data-id="${l.id}">✕</button></div></td></tr>`).join('')}
+      </tbody><tfoot><tr><td colspan="6">${L.length} lançamento(s)</td><td class="n">${R(sum(L,l=>l.valor))}</td><td colspan="2"></td></tr></tfoot></table></div>`
+      : `<div class="tw">${vazio('Nenhum gasto no período', 'Registre gastos com cercas, casa, construções, energia, água e demais despesas da propriedade.')}</div>`}`;
+}
+
+/* ---------- Configurações ---------- */
+function listaEditavel(titulo, chave, itens, sub){
+  return `<div class="card"><h3>${titulo}</h3>${sub?`<p class="small muted" style="margin:-4px 0 10px">${sub}</p>`:''}
+    <div class="chips" style="margin-bottom:10px">${itens.length ? itens.map((x,i)=>`<span class="chip">${esc(x)} <a style="cursor:pointer;color:var(--erro);margin-left:4px" data-act="cfgDel" data-k="${chave}" data-i="${i}">✕</a></span>`).join('') : '<span class="muted small">Nenhuma categoria personalizada.</span>'}</div>
+    <div style="display:flex;gap:6px"><input id="in-${chave.replace('.','-')}" placeholder="Nova categoria" style="flex:1;border:1px solid var(--cinza3);border-radius:8px;padding:7px 10px"><button class="btn ghost sm" data-act="cfgAdd" data-k="${chave}">Adicionar</button></div></div>`;
+}
+function pgConfig(){
+  const t = uiGet('cfgTab','geral');
+  let body = '';
+  if (t === 'geral') {
+    const ve = S.cfg.valorEstimado || {};
+    body = `<div class="grid g2">
+      <div class="card"><h3>Valor estimado por cabeça</h3><p class="small muted" style="margin:-4px 0 12px">Usado para estimar o valor do plantel no patrimônio (o módulo Patrimônio da Etapa 3 trará avaliação por categoria).</p>
+        <form id="fVE" class="fg fg3">${fNum('bovino','Bovino (R$)', ve.bovino)}${fNum('suino','Suíno (R$)', ve.suino)}${fNum('galinha','Galinha (R$)', ve.galinha)}</form>
+        <div style="margin-top:10px"><button class="btn primary sm" data-act="salvarVE">Salvar valores</button></div></div>
+      <div class="card"><h3>Usuário e segurança</h3><p style="margin:0;line-height:1.7;color:var(--tx2)">Acesso: <b>${esc(S.nome||'Proprietário')}</b> (login da conta Claude).<br>
+        Somente você (e quem você convidar como editor) acessa e altera estes dados. Exclusões são lógicas e ficam registradas na auditoria.</p>
+        <div class="btnrow" style="margin-top:12px"><button class="btn ghost sm" data-act="backup">Baixar backup completo (JSON)</button></div></div>
+      ${listaEditavel('Categorias extras de receita','catReceitaExtra', S.cfg.catReceitaExtra||[])}
+      ${listaEditavel('Categorias extras de despesa','catDespesaExtra', S.cfg.catDespesaExtra||[])}
+      ${listaEditavel('Categorias extras de bovinos','catAnimalExtra.bovino', (S.cfg.catAnimalExtra||{}).bovino||[])}
+      ${listaEditavel('Categorias extras de suínos','catAnimalExtra.suino', (S.cfg.catAnimalExtra||{}).suino||[])}
+      ${listaEditavel('Tipos extras de criação de galinhas','catAnimalExtra.galinha', (S.cfg.catAnimalExtra||{}).galinha||[])}
+      ${listaEditavel('Estruturas / locais da propriedade','locais', S.cfg.locais||[], 'Sugestões para “estrutura ou local beneficiado” nos gastos (ex.: Casa sede, Pasto 1, Chiqueiro).')}
+    </div>`;
+  } else if (t === 'auditoria') {
+    const AU = S.data.auditoria || [];
+    body = AU.length ? `<div class="tw"><table><thead><tr><th>Quando</th><th>Usuário</th><th>Ação</th><th>Registro</th><th>Resumo</th></tr></thead><tbody>
+      ${AU.map(a => `<tr><td>${D(a.quando)} ${(a.quando||'').slice(11,16)}</td><td>${esc(a.quemNome||'—')}</td><td><b>${esc(a.acao)}</b></td><td>${esc(a.colecao)}</td><td>${esc(a.resumo||'')}</td></tr>`).join('')}</tbody></table></div>
+      <p class="small muted">Últimos 300 registros.</p>` : `<div class="tw">${vazio('Sem registros de auditoria ainda')}</div>`;
+  } else if (t === 'lixeira') {
+    const X = [...(S.data.lancamentos||[]).filter(x=>x.excluido).map(x=>({ ...x, _c:'Lançamento', _d:`${x.categoria} · ${x.descricao}`, _v:x.valor })),
+      ...(S.data.movimentacoes||[]).filter(x=>x.excluido).map(x=>({ ...x, _c:'Movimentação', _d:`${MOV_NOMES[x.tipo]||x.tipo} · ${ESPECIES[x.especie]?.nome||''}`, _v:x.valor })),
+      ...(S.data.animais||[]).filter(x=>x.excluido).map(x=>({ ...x, _c:'Animal', _d:x.ident })), ...(S.data.lotes||[]).filter(x=>x.excluido).map(x=>({ ...x, _c:'Lote', _d:x.codigo })),
+      ...(S.data.ovos||[]).filter(x=>x.excluido).map(x=>({ ...x, _c:'Ovos', _d:`${x.produzidos} produzidos`, _v:x.valorVenda }))].sort((a,b)=>(b.excluidoEm||'').localeCompare(a.excluidoEm||''));
+    body = `<p class="small muted">Registros excluídos ou estornados. Ficam guardados para consulta e não entram nos cálculos.</p>` + (X.length ? `<div class="tw"><table><thead><tr><th>Excluído em</th><th>Tipo</th><th>Data original</th><th>Descrição</th><th class="n">Valor</th></tr></thead><tbody>
+      ${X.map(x => `<tr><td>${D(x.excluidoEm)}</td><td>${x._c}</td><td>${D(x.data||x.dataEntrada)}</td><td>${esc(x._d)}</td><td class="n">${x._v?R(x._v):''}</td></tr>`).join('')}</tbody></table></div>` : `<div class="tw">${vazio('Nenhum registro excluído')}</div>`);
+  }
+  return tabs('cfgTab', [['geral','Geral'],['auditoria','Auditoria'],['lixeira','Registros excluídos']], 'geral') + body;
+}
+
+/* ---------- Páginas das próximas etapas ---------- */
+const FUTURAS = {
+  manejo:['Etapa 2','Vacinação, vermifugação, medicamentos, sal mineral e suplementação por animal ou lote, com baixa automática no estoque e histórico sanitário. (A pesagem com GMD já funciona na ficha de cada animal.)'],
+  reproducao:['Etapa 2','Matrizes e reprodutores, coberturas, previsão de parto, diagnóstico de gestação, partos (nascidos vivos/mortos), abortos, desmame e histórico de cada leitegada e de cada vaca.'],
+  calendario:['Etapa 2','Calendário diário/semanal/mensal com coberturas, partos previstos, vacinações, pesagens, vendas programadas e manutenções, com responsáveis, lembretes e alertas de atraso.'],
+  estoque:['Etapa 2','Rações, milho, sal, medicamentos, vacinas e materiais: entradas pelas compras, saídas por atividade e lote, preço médio, estoque mínimo e alertas de vencimento.'],
+  custos:['Etapa 3','Custo por cabeça, por lote, por matriz, por leitegada, por leitão desmamado, por suíno terminado, por kg produzido, por ave e por dúzia de ovos, a partir dos lançamentos e consumos — sem duplicidade.'],
+  patrimonio:['Etapa 3','Terreno, casa, cercas, galpões, máquinas e veículos com valor investido e valor atual, histórico de melhorias, avaliação do rebanho por categoria e evolução patrimonial.'],
+  relatorios:['Etapa 3','DRE gerencial (mensal, anual, acumulada, por atividade) e os 20 relatórios com filtros, exportação em PDF e Excel com a identidade da Estância 78.']
+};
+function pgFutura(k){
+  const [et, txt] = FUTURAS[k];
+  return `<div class="card plan"><h3>${MENU.find(m=>m[0]===k)[1]} <span class="badge b-pend" style="font-family:Inter;letter-spacing:0">${et}</span></h3>
+    <p style="margin:0;color:var(--tx2);line-height:1.6">${txt}</p>
+    <p class="small muted" style="margin-top:12px">Os dados lançados desde já (animais, lotes, movimentações e despesas) serão aproveitados por este módulo quando ele chegar.</p></div>`;
+}
+
+const PAGES = {
+  dashboard:{ titulo:'Dashboard', sub:'Visão geral da propriedade', render:pgDashboard, after:afterDashboard },
+  financeiro:{ titulo:'Financeiro', sub:'Receitas, despesas, contas e fluxo de caixa', render:pgFinanceiro },
+  bovinos:{ titulo:'Bovinos', sub:'Rebanho, vendas e movimentações', render:pgBovinos },
+  suinos:{ titulo:'Suínos', sub:'Lotes, plantel, comercialização e movimentações', render:pgSuinos },
+  galinhas:{ titulo:'Galinhas', sub:'Lotes, produção de ovos e vendas', render:pgGalinhas },
+  'despesas-gerais':{ titulo:'Despesas Gerais – Estância 78', sub:'Cercas, casa, instalações e despesas da propriedade', render:pgDespesasGerais },
+  configuracoes:{ titulo:'Configurações', sub:'Categorias, valores de referência, auditoria e backup', render:pgConfig }
+};
+for (const k of Object.keys(FUTURAS)) PAGES[k] = { titulo:MENU.find(m=>m[0]===k)[1], sub:'Em construção', render:() => pgFutura(k) };
+
+/* ---------- Ações ---------- */
+const ACTIONS = {
+  tab: d => { S.ui[d.key] = d.val; render(); },
+  setf: d => { S.ui[d.k] = d.v; render(); },
+  go: d => { location.hash = d.p; },
+  periodo: d => {
+    const p = d.p, h = hoje();
+    if (d.v === 'mes') { S.ui[p+'Ini'] = mesIni(h); S.ui[p+'Fim'] = mesFim(h); }
+    if (d.v === 'mesant') { const x = addMeses(mesIni(h), -1); S.ui[p+'Ini'] = x; S.ui[p+'Fim'] = mesFim(x); }
+    if (d.v === 'ano') { S.ui[p+'Ini'] = h.slice(0,4)+'-01-01'; S.ui[p+'Fim'] = h.slice(0,4)+'-12-31'; }
+    if (d.v === 'tudo') { S.ui[p+'Ini'] = ''; S.ui[p+'Fim'] = ''; }
+    render();
+  },
+  novoLanc: () => abrirLancamento(),
+  novoLancTipo: d => abrirLancamento({ tipo:d.tipo }),
+  outraReceita: d => abrirLancamento({ tipo:'receita', atividade:d.atv, categoria:'Venda de esterco' }),
+  novoGasto: () => abrirLancamento({ tipo:'despesa', atividade:'geral' }),
+  editLanc: d => abrirLancamento({}, byId('lancamentos', d.id)),
+  delLanc: d => excluirLanc(byId('lancamentos', d.id)),
+  pagar: d => abrirPagamento(byId('lancamentos', d.id)),
+  desfazPg: async d => {
+    const l = byId('lancamentos', d.id); if (!l) return;
+    if (!(await confirmar('Desfazer este pagamento/recebimento? O lançamento volta a ficar em aberto.', 'Desfazer'))) return;
+    try { exigeEscrita(); await dbUpd('lancamentos', l.id, { pagamentos:(l.pagamentos||[]).filter(p => p.id !== d.pg) }); await audit('desfazer pagamento','lancamentos',l.id,''); toast('Pagamento desfeito.'); $$('#modal-root .mback').forEach(m=>m.remove()); }
+    catch(e){ falha(e); }
+  },
+  novaConta: () => abrirConta(),
+  editConta: d => abrirConta(byId('contas', d.id)),
+  novoAnimal: d => abrirAnimal(d.esp),
+  editAnimal: d => abrirAnimal(byId('animais', d.id).especie, byId('animais', d.id)),
+  ficha: d => abrirFicha(d.id),
+  pesagem: d => abrirPesagem(d.id),
+  indMov: d => abrirMovInd(d.id, d.tipo),
+  novoLote: d => abrirLote(d.esp),
+  editLote: d => abrirLote(byId('lotes', d.id).especie, byId('lotes', d.id)),
+  fichaLote: d => abrirFichaLote(d.id),
+  loteMov: d => abrirMovLote(d.id, d.tipo),
+  encerrarLote: async d => { try { exigeEscrita(); await dbUpd('lotes', d.id, { situacao:'encerrado', dataEncerramento:hoje() }); await audit('encerrar','lotes',d.id,''); toast('Lote encerrado.'); $$('#modal-root .mback').forEach(m=>m.remove()); } catch(e){ falha(e); } },
+  reabrirLote: async d => { try { exigeEscrita(); await dbUpd('lotes', d.id, { situacao:'ativo' }); toast('Lote reaberto.'); $$('#modal-root .mback').forEach(m=>m.remove()); } catch(e){ falha(e); } },
+  vender: d => abrirVenda(d.esp, { loteId:d.lote, animalId:d.animal }),
+  estornar: d => estornarMov(byId('movimentacoes', d.id)),
+  novoOvos: () => abrirOvos(),
+  delOvos: d => excluirOvos(byId('ovos', d.id)),
+  salvarVE: async () => { try { exigeEscrita(); const f = $('#fVE'); await salvarCfg({ valorEstimado:{ bovino:num(f.elements.bovino.value), suino:num(f.elements.suino.value), galinha:num(f.elements.galinha.value) } }); toast('Valores salvos.'); } catch(e){ falha(e); } },
+  cfgAdd: async d => {
+    const inp = document.getElementById('in-'+d.k.replace('.','-')); const v = (inp.value||'').trim(); if (!v) return;
+    try { exigeEscrita();
+      if (d.k.includes('.')) { const [a,b] = d.k.split('.'); const obj = { ...(S.cfg[a]||{}) }; obj[b] = [...new Set([...(obj[b]||[]), v])]; await salvarCfg({ [a]:obj }); }
+      else await salvarCfg({ [d.k]: [...new Set([...(S.cfg[d.k]||[]), v])] });
+      toast('Adicionado.'); } catch(e){ falha(e); }
+  },
+  cfgDel: async d => {
+    try { exigeEscrita();
+      if (d.k.includes('.')) { const [a,b] = d.k.split('.'); const obj = { ...(S.cfg[a]||{}) }; obj[b] = (obj[b]||[]).filter((_,i)=>i!==+d.i); await salvarCfg({ [a]:obj }); }
+      else await salvarCfg({ [d.k]: (S.cfg[d.k]||[]).filter((_,i)=>i!==+d.i) });
+    } catch(e){ falha(e); }
+  },
+  backup: () => salvarArquivo(`estancia78-backup-${hoje()}.json`, JSON.stringify({ geradoEm:stamp(), config:S.cfg, ...Object.fromEntries(COLS.map(c=>[c, S.data[c]])) }, null, 1)),
+  expLancs: () => { const L = filtraLancs('fin'); exportarXLSX(`estancia78-lancamentos-${hoje()}.xlsx`, 'Lançamentos financeiros',
+    ['Data','Tipo','Atividade','Categoria','Classificação','Descrição','Fornecedor/cliente','Valor','Pago/recebido','Em aberto','Vencimento','Situação','Forma','Conta','Local'],
+    L.map(l => [D(l.data), l.tipo, ATIVIDADES[l.atividade], l.categoria, CLASSIF[l.classificacao]||'', l.descricao, l.contraparte, round2(l.valor), pagoDe(l), restante(l), D(l.vencimento), statusL(l), l.forma, (byId('contas',l.contaId)||{}).nome||'', l.local||''])); },
+  expGerais: () => { const [ini, fim] = periodo('dg'); const L = A('lancamentos').filter(l => l.tipo==='despesa' && l.atividade==='geral' && inRange(l.data, ini, fim));
+    exportarXLSX(`estancia78-despesas-gerais-${hoje()}.xlsx`, 'Despesas gerais', ['Data','Grupo','Item','Classificação','Descrição','Local','Fornecedor','Valor','Situação'],
+      L.map(l => [D(l.data), (GRUPOS_GERAIS[l.grupo]||{}).nome||'', l.categoria, CLASSIF[l.classificacao]||'', l.descricao, l.local, l.contraparte, round2(l.valor), statusL(l)])); },
+  expAnimais: d => { const L = A('animais').filter(a => a.especie === d.esp);
+    exportarXLSX(`estancia78-${d.esp}s-${hoje()}.xlsx`, ESPECIES[d.esp].nome, ['Identificação','Nome','Raça','Sexo','Nascimento','Categoria','Peso inicial','Peso atual','Data peso','Local','Origem','Entrada','Valor aquisição','Situação','Mãe','Pai','Obs.'],
+      L.map(a => [a.ident, a.nome, a.raca, a.sexo, D(a.nascimento), a.categoria, a.pesoInicial, a.pesoAtual, D(a.dataPeso), a.local, MOV_NOMES[a.origem]||a.origem, D(a.dataEntrada), a.valorAquisicao, a.situacao, a.mae, a.pai, a.obs])); },
+  expMovs: d => { const [ini, fim] = periodo('mv'); const M = movsValidas().filter(m => m.especie === d.esp && inRange(m.data, ini, fim));
+    exportarXLSX(`estancia78-movimentacoes-${d.esp}-${hoje()}.xlsx`, 'Movimentações '+ESPECIES[d.esp].nome, ['Data','Movimentação','Animal/lote','Quantidade','Variação no saldo','Valor','Detalhes'],
+      M.map(m => [D(m.data), MOV_NOMES[m.tipo]||m.tipo, alvoMov(m).replace(/<[^>]+>/g,''), m.qtd, m.delta||'', m.valor||'', descMov(m).replace(/<[^>]+>/g,'')])); },
+  expVendas: d => { const [ini, fim] = periodo('vd'); const V = movsValidas().filter(m => m.especie === d.esp && m.tipo === 'venda' && inRange(m.data, ini, fim));
+    exportarXLSX(`estancia78-vendas-${d.esp}-${hoje()}.xlsx`, 'Vendas '+ESPECIES[d.esp].nome, ['Data','Produto','Origem','Modalidade','Quantidade','Idade','Peso médio','Peso total','R$/cabeça','R$/kg','Total','Custo','Lucro','Comprador','Recebimento'],
+      V.map(m => { const v = m.venda||{}, l = byId('lancamentos', m.lancamentoId); return [D(m.data), v.produto, alvoMov(m).replace(/<[^>]+>/g,''), v.modo, m.qtd, v.idade, v.pesoMedio, v.pesoTotal, v.valorCabeca, v.valorKg, m.valor, v.custo, v.lucro, m.contraparte, l?statusL(l):'']; })); }
+};
+
+/* ---------- Eventos globais ---------- */
+document.addEventListener('click', e => {
+  const a = e.target.closest('[data-act]'); if (!a) return;
+  const fn = ACTIONS[a.dataset.act]; if (!fn) return;
+  e.preventDefault();
+  try { const r = fn(a.dataset, a, e); if (r && r.catch) r.catch(falha); } catch(err){ falha(err); }
+});
+function onFilter(e){
+  const el = e.target; if (!el.dataset || !el.dataset.filter) return;
+  if (e.type === 'input' && el.tagName === 'SELECT') return;
+  S.ui[el.dataset.filter] = el.value;
+  if (el.tagName === 'INPUT' && el.type !== 'date' && e.type === 'input') { clearTimeout(onFilter.t); onFilter.t = setTimeout(render, 200); } else render();
+}
+document.addEventListener('input', onFilter);
+document.addEventListener('change', e => { if (e.target.dataset && e.target.dataset.filter && (e.target.tagName === 'SELECT' || e.target.type === 'date')) onFilter(e); });
+function route(){
+  const h = (location.hash || '').replace('#','');
+  S.page = PAGES[h] ? h : 'dashboard';
+  $('#side').classList.remove('open'); $('#scrim').classList.remove('on');
+  window.scrollTo(0,0); render();
+}
+window.addEventListener('hashchange', route);
+$('#burger').addEventListener('click', () => { $('#side').classList.add('open'); $('#scrim').classList.add('on'); });
+$('#scrim').addEventListener('click', () => { $('#side').classList.remove('open'); $('#scrim').classList.remove('on'); });
+if (window.Chart) { Chart.defaults.font.family = 'Inter'; Chart.defaults.color = '#4d5650'; }
+route();
+initDB().catch(e => { console.error(e); semBanco('Erro ao conectar ao banco: '+(e.message||e)); });
+
+</script>
+</body>
+</html>
