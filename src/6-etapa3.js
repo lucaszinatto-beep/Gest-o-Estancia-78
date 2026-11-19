@@ -462,7 +462,11 @@ function exportarRelXLS(){
 
 /* ---------------- Integrações com o restante do sistema ---------------- */
 function contadorAgenda(){ const hj = hoje(); return A('eventos').filter(e => !e.concluido && e.data <= hj).length; }
-function atualizarModais(){ const box = $('#modal-root .daylist'); if (box && S.diaAberto) { const ev = evDoDia(A('eventos'), S.diaAberto); const h = ev.length ? ev.map(e => linhaEvento(e)).join('') : '<p class="muted" style="margin:0 0 6px">Nenhum compromisso neste dia.</p>'; if (box.innerHTML !== h) box.innerHTML = h; } }
+function atualizarModais(){
+  const box = $('#modal-root .daylist'); if (!box || !S.diaAberto) return;
+  const ev = evDoDia(A('eventos'), S.diaAberto); const h = ev.length ? ev.map(e => linhaEvento(e)).join('') : '<p class="muted" style="margin:0 0 6px">Nenhum compromisso neste dia.</p>'; if (box.innerHTML !== h) box.innerHTML = h;
+  const rg = $('#modal-root .dayregs'); if (rg) { const h2 = htmlRegistrosDia(S.diaAberto); if (rg.innerHTML !== h2) rg.innerHTML = h2; }
+}
 function extraAlertas(){
   const out = []; const hj = hoje();
   const atr = A('eventos').filter(e => !e.concluido && e.data < hj); if (atr.length) out.push(['err', `${atr.length} compromisso(s) atrasado(s) no calendário`]);

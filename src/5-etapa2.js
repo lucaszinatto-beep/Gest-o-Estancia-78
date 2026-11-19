@@ -459,10 +459,11 @@ function pgCalendario(){
     const cells = [];
     for (let i = 0; i < 42; i++) {
       const d = addDias(ini, i); if (i >= 35 && d.slice(5,7) !== String(m).padStart(2,'0')) break;
-      const ev = evDoDia(E, d), fora = d.slice(5,7) !== String(m).padStart(2,'0');
-      cells.push(`<div class="calcell ${fora?'fora':''} ${d===hj?'hoje':''}" data-act="calDia" data-d="${d}">
+      const ev = evDoDia(E, d), fora = d.slice(5,7) !== String(m).padStart(2,'0'), nreg = registrosDoDia(d).total;
+      cells.push(`<div class="calcell ${fora?'fora':''} ${d===hj?'hoje':''}" data-act="calDia" data-d="${d}" title="Clique para ver e lançar compromissos">
         <div class="calnum"><span>${+d.slice(8)}</span>${ev.length?`<i class="calcount">${ev.length}</i>`:''}</div>
-        <div class="calevs">${ev.slice(0,3).map(e => chipEv(e)).join('')}${ev.length>3?`<div class="calmais">+${ev.length-3} mais</div>`:''}</div>
+        <div class="calevs">${ev.slice(0,3).map(e => chipEv(e)).join('')}${ev.length>3?`<div class="calmais">+${ev.length-3} mais</div>`:''}${nreg?`<div class="calreg">${nreg} registro${nreg>1?'s':''}</div>`:''}</div>
+        <span class="caladd">+</span>
         <div class="caldots">${ev.slice(0,5).map(e=>`<i style="background:${corEv(e.tipo)}"></i>`).join('')}</div></div>`);
     }
     grade = `<div class="calgrid">${DIAS_SEM.map(d=>`<div class="calhead">${d}</div>`).join('')}${cells.join('')}</div>`;
@@ -502,14 +503,81 @@ function linhaEvento(e, comData=false){
       <div class="evm">${comData?`<b class="${atras?'neg':''}">${D(e.data)}</b> · `:''}${e.hora?esc(e.hora)+' · ':''}<span class="dot" style="background:${corEv(e.tipo)}"></span>${esc(e.tipo)}${e.atividade?' · '+esc(ATIVIDADES[e.atividade]||''):''}${e.responsavel?' · '+esc(e.responsavel):''}</div></div>
     <button class="ico" data-act="calDel" data-id="${e.id}" title="Excluir" aria-label="Excluir">✕</button></div>`;
 }
+function registrosDoDia(d){
+  const mov = movsValidas().filter(m => m.data === d);
+  const man = A('manejos').filter(m => m.data === d);
+  const rep = [];
+  for (const r of A('reproducoes')) {
+    if (r.dataCob === d) rep.push([r, 'Cobertura']);
+    if (r.diag && r.diag.data === d) rep.push([r, 'Diagnóstico ' + (r.diag.resultado === 'positivo' ? 'positivo' : 'negativo')]);
+    if (r.parto && r.parto.data === d) rep.push([r, 'Parto']);
+    if (r.desmame && r.desmame.data === d) rep.push([r, 'Desmame']);
+  }
+  const lan = A('lancamentos').filter(l => l.data === d);
+  const ovo = A('ovos').filter(o => o.data === d);
+  const est = A('estoqueMovs').filter(m => m.data === d && m.origem !== 'manejo');
+  return { mov, man, rep, lan, ovo, est, total: mov.length + man.length + rep.length + lan.length + ovo.length + est.length };
+}
+function htmlRegistrosDia(d){
+  const r = registrosDoDia(d);
+  if (!r.total) return '<p class="muted small" style="margin:0">Nenhum registro de animais, manejo ou financeiro neste dia.</p>';
+  const bloco = (titulo, itens) => itens.length ? `<div class="dayreg"><b>${titulo}</b><ul>${itens.join('')}</ul></div>` : '';
+  return [
+    bloco('Animais', r.mov.map(m => `<li><b>${esc(MOV_NOMES[m.tipo]||m.tipo)}</b> · ${esc(ESPECIES[m.especie]?.nome||'')} · ${alvoMov(m)} ${m.qtd?`· ${N(m.qtd)} cab.`:''}${m.valor?` · ${R(m.valor)}`:''}</li>`)),
+    bloco('Manejo sanitário', r.man.map(m => `<li><b>${esc(m.tipo)}</b> · ${esc(alvoTxt(m.alvo))}${m.produtoNome?` · ${esc(m.produtoNome)}`:''}${m.dose?` · ${esc(m.dose)}`:''}</li>`)),
+    bloco('Reprodução', r.rep.map(([x, t]) => `<li><b>${esc(t)}</b> · ${esc(x.matrizNome)}${t==='Parto'&&x.parto ? (x.especie==='suino' ? ` · ${N(x.parto.vivos)} vivos` : ` · ${esc(x.parto.ident||'natimorto')}`) : ''}</li>`)),
+    bloco('Financeiro', r.lan.map(l => `<li><span class="badge ${l.tipo==='receita'?'b-ok':'b-err'}">${l.tipo==='receita'?'Receita':'Despesa'}</span> ${esc(l.descricao||l.categoria)} · <b>${R(l.valor)}</b></li>`)),
+    bloco('Ovos', r.ovo.map(o => `<li>${N(o.produzidos)} produzidos · ${N(o.vendidos)} vendidos${o.valorVenda?` · ${R(o.valorVenda)}`:''}</li>`)),
+    bloco('Estoque', r.est.map(m => { const p = byId('produtos', m.produtoId)||{}; return `<li>${esc({entrada:'Entrada',saida:'Saída',ajuste:'Ajuste',inicial:'Saldo inicial'}[m.tipo]||m.tipo)} · ${esc(p.nome||'')} · ${N(m.delta,2)} ${esc(p.unidade||'')}</li>`; }))
+  ].join('');
+}
+const RAPIDOS_DIA = ['Compromisso','Desmame','Medicamento','Vacinação','Vermifugação','Pesagem','Cobertura','Venda programada','Manutenção'];
 function abrirDia(d){
+  S.diaAberto = d;
   const ev = evDoDia(A('eventos'), d);
-  const rapidos = ['Desmame','Medicamento','Vacinação','Vermifugação','Pesagem','Cobertura','Compromisso'];
-  modal({ title:`${DIAS_SEM[new Date(d+'T12:00:00Z').getUTCDay()]}, ${D(d)}`, wide:true,
-    html:`<div class="daylist">${ev.length ? ev.map(e => linhaEvento(e)).join('') : '<p class="muted" style="margin:0 0 6px">Nenhum compromisso neste dia.</p>'}</div>
-      <h4 style="font-size:16px;color:var(--verde);margin:16px 0 8px">Incluir neste dia</h4>
-      <div class="chips">${rapidos.map(t => `<button type="button" class="chip" data-act="calNovo" data-d="${d}" data-tipo="${t}"><span class="dot" style="background:${corEv(t)}"></span>${t}</button>`).join('')}</div>`,
-  });
+  const m = modal({ title:`${DIAS_SEM[new Date(d+'T12:00:00Z').getUTCDay()]}, ${D(d)}`, wide:true, submit:'Incluir no calendário',
+    html:`<div class="daygrid"><div>
+        <h4 class="dayh">Compromissos e eventos</h4>
+        <div class="daylist">${ev.length ? ev.map(e => linhaEvento(e)).join('') : '<p class="muted" style="margin:0 0 6px">Nenhum compromisso neste dia.</p>'}</div>
+        <h4 class="dayh" style="margin-top:16px">Lançar neste dia</h4>
+        <div class="chips" style="margin-bottom:10px">${RAPIDOS_DIA.map(t => `<button type="button" class="chip" data-rap="${esc(t)}"><span class="dot" style="background:${corEv(t)}"></span>${esc(t)}</button>`).join('')}</div>
+        <div class="fg">
+          ${fSel('tipo','Tipo', Object.keys(TIPOS_EVENTO), 'Compromisso')}
+          ${fInp('hora','Hora','', '', 'time')}
+          ${fInp('titulo','Descrição *','', 'full placeholder="Ex.: Vacinar bezerros, desmamar lote LEI-01, chamar veterinário"')}
+          ${fSel('atividade','Atividade', Object.entries(ATIVIDADES), '', '', 'Geral / nenhuma')}
+          ${fInp('responsavel','Responsável','')}
+          ${fSel('repetir','Repetir', [['','Não repetir'],['1','Diariamente'],['7','Semanalmente'],['14','A cada 15 dias'],['30','Mensalmente']], '')}
+          ${fNum('vezes','Quantas vezes','')}
+          ${fTxt('obs','Observações','')}
+        </div></div>
+      <div><h4 class="dayh">Registros do dia</h4><div class="dayregs">${htmlRegistrosDia(d)}</div></div></div>`,
+    onInit(form){
+      form.addEventListener('click', e => {
+        const b = e.target.closest('[data-rap]'); if (!b) return;
+        const t = b.dataset.rap; form.elements.tipo.value = t;
+        $$('[data-rap]', form).forEach(x => x.classList.toggle('on', x === b));
+        if (!form.elements.titulo.value || /^[^:]+: $/.test(form.elements.titulo.value)) form.elements.titulo.value = t === 'Compromisso' ? '' : t + ': ';
+        form.elements.titulo.focus();
+      });
+    },
+    async onSubmit(fd, form){
+      exigeEscrita();
+      const titulo = reqTxt((fd.titulo||'').replace(/^[^:]+:\s*$/, ''), 'a descrição do compromisso');
+      const base = { titulo, tipo:fd.tipo, hora:fd.hora||'', atividade:fd.atividade||'', alvo:null, responsavel:(fd.responsavel||'').trim(), lembreteDias:1, obs:(fd.obs||'').trim(), concluido:false, origem:null };
+      const passo = +fd.repetir || 0, vezes = passo ? Math.max(1, Math.min(60, Math.round(num(fd.vezes)) || 1)) : 1;
+      for (let i = 0; i < vezes; i++) {
+        const dt = passo === 30 ? addMeses(d, i) : addDias(d, passo * i);
+        await dbSet('eventos', novoId('eventos'), { ...base, data:dt, titulo: vezes > 1 ? `${titulo} (${i+1}/${vezes})` : titulo });
+      }
+      await audit('agendar','eventos','-',titulo);
+      toast(vezes > 1 ? `${vezes} compromissos incluídos.` : 'Compromisso incluído.');
+      form.elements.titulo.value = ''; form.elements.obs.value = ''; form.elements.hora.value = ''; form.elements.repetir.value = ''; form.elements.vezes.value = '';
+      $$('[data-rap]', form).forEach(x => x.classList.remove('on'));
+      setTimeout(atualizarModais, 80);
+      return false;   // mantém o dia aberto
+    } });
+  return m;
 }
 function abrirEvento(d, edit = null, tipo0){
   const e = edit || {};
