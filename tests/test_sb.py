@@ -17,8 +17,10 @@ with sync_playwright() as p:
     def route(r):
         u = r.request.url
         if 'chart.umd' in u: return r.fulfill(path=NM+'chart.js/dist/chart.umd.js', content_type='application/javascript')
+        if 'jspdf.umd' in u: return r.fulfill(path=NM+'jspdf/dist/jspdf.umd.min.js', content_type='application/javascript')
+        if 'autotable' in u: return r.fulfill(path=NM+'jspdf-autotable/dist/jspdf.plugin.autotable.min.js', content_type='application/javascript')
         if 'xlsx.full' in u: return r.fulfill(path=NM+'xlsx/dist/xlsx.full.min.js', content_type='application/javascript')
-        if 'supabase' in u: return r.fulfill(path='/home/claude/testenv/mock_sb.js', content_type='application/javascript')
+        if 'supabase-js' in u: return r.fulfill(path='/home/claude/testenv/mock_sb.js', content_type='application/javascript')
         if u.endswith('config.js'): return r.fulfill(body="window.ESTANCIA_CONFIG={supabaseUrl:'https://x.supabase.co',supabaseAnonKey:'anon'}", content_type='application/javascript')
         if u.startswith('file://'): return r.continue_()
         return r.abort()
@@ -198,8 +200,8 @@ with sync_playwright() as p:
 
     # 11. Dashboard render + charts
     go('dashboard'); pg.wait_for_timeout(400)
-    ok(pg.locator('canvas').count() == 6, 'dashboard com 6 gráficos')
-    ok(E("S.charts.length") == 6, 'gráficos renderizados (Chart.js)')
+    ok(pg.locator('canvas').count() == 7, 'dashboard com 7 gráficos')
+    ok(E("S.charts.length") == 7, 'gráficos renderizados (Chart.js)')
     pg.screenshot(path='/home/claude/testenv/dash.png', full_page=True)
     # filtro
     pg.click('[data-act=periodo][data-v=tudo]'); pg.wait_for_timeout(200)

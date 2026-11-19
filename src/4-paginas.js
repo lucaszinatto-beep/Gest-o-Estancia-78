@@ -23,10 +23,10 @@ function pgDashboard(){
   const tudo = econ('', '', null);
   const invInfra = sum(A('lancamentos').filter(l => l.tipo==='despesa' && CLASSIF_INV.includes(l.classificacao) && !Object.values(COMPRA_CAT).includes(l.categoria)), l => l.valor);
   const invAnimais = sum(A('lancamentos').filter(l => l.tipo==='despesa' && Object.values(COMPRA_CAT).includes(l.categoria)), l => l.valor);
-  const ve = S.cfg.valorEstimado || {};
-  const plantel = cabecas('bovino')*(+ve.bovino||0) + cabecas('suino')*(+ve.suino||0) + cabecas('galinha')*(+ve.galinha||0);
+  const pr = patrimonioResumo();
+  const plantel = pr.reb.total;
   const saldo = saldoTotal();
-  const patrimonio = saldo + ar - ap + invInfra + plantel;
+  const patrimonio = pr.total;
   // Animais no período
   const M = movsValidas().filter(m => inRange(m.data, ini, fim) && (!atv || ESPECIES[m.especie]?.atividade === atv));
   const qm = t => sum(M.filter(m => m.tipo === t), m => m.qtd);
@@ -35,6 +35,7 @@ function pgDashboard(){
   const vr = abertos('receita').filter(l => statusL(l) === 'vencido'); if (vr.length) alertas.push(['', `${vr.length} recebimento(s) atrasado(s): ${R(sum(vr, restante))}`]);
   if (!A('contas').length) alertas.push(['', 'Cadastre suas contas financeiras (Financeiro › Contas financeiras) para acompanhar o saldo disponível.']);
   for (const c of A('contas')) if (saldoConta(c) < 0) alertas.push(['err', `Conta “${c.nome}” com saldo negativo: ${R(saldoConta(c))}`]);
+  if (typeof extraAlertas === 'function') alertas.push(...extraAlertas());
   const vazioSis = !A('lancamentos').length && !A('animais').length && !A('lotes').length;
   return `<div class="bar">${filtroPeriodo('db')}
       <label class="fld"><span>Atividade</span><select data-filter="dbAtv">${opts(Object.entries(ATIVIDADES), atv, 'Todas')}</select></label></div>
@@ -53,7 +54,7 @@ function pgDashboard(){
       ${kpi('Contas a pagar', R(ap), abertos('despesa').length+' em aberto', 'red')}
       ${kpi('Contas a receber', R(ar), abertos('receita').length+' em aberto', 'green')}
       ${kpi('Total investido', R(invInfra+invAnimais), `estruturas ${R0(invInfra)} · animais ${R0(invAnimais)}`)}
-      ${kpi('Patrimônio estimado', R(patrimonio), 'saldo + a receber − a pagar + estruturas + plantel', 'gold')}
+      ${kpi('Patrimônio estimado', R(patrimonio), 'saldo + a receber − a pagar + bens + animais', 'gold')}
     </div>
     <div class="section-t">Animais</div>
     <div class="grid g5">
@@ -71,6 +72,8 @@ function pgDashboard(){
       <div class="card"><h3>Custos por atividade<span class="hint">período · operacionais + gerais</span></h3><div class="chart-box"><canvas id="chAtv"></canvas></div></div>
       <div class="card"><h3>Rentabilidade por atividade<span class="hint">período</span></h3><div class="chart-box"><canvas id="chRent"></canvas></div></div>
       <div class="card"><h3>Animais por espécie<span class="hint">cabeças ativas</span></h3><div class="chart-box"><canvas id="chEsp"></canvas></div></div>
+      <div class="card"><h3>Evolução do patrimônio<span class="hint">mensal</span></h3><div class="chart-box"><canvas id="chPat"></canvas></div></div>
+      <div class="card"><h3>Próximos compromissos<span class="hint"><a href="#calendario">abrir calendário</a></span></h3>${(() => { const pe = A('eventos').filter(e => !e.concluido && e.data >= hoje()).sort((a,b)=>a.data.localeCompare(b.data)||(a.hora||'').localeCompare(b.hora||'')).slice(0,7); return pe.length ? pe.map(e => linhaEvento(e, true)).join('') : '<p class="muted small">Nenhum compromisso agendado.</p>'; })()}</div>
     </div>`;
 }
 function afterDashboard(){
@@ -91,6 +94,8 @@ function afterDashboard(){
   mkChart('chAtv', { type:'bar', data:{ labels:atvs.map(a=>ATIVIDADES[a]), datasets:[{ ...barDs('Custos', ea.map(x=>x.oper+x.ger), atvs.map(a=>CORES[a])) }] }, options:chartOpts({ legend:false }) });
   const a3 = ['bovinos','suinos','galinhas'], e3 = a3.map(a => econ(ini, fim, a));
   mkChart('chRent', { type:'bar', data:{ labels:a3.map(a=>ATIVIDADES[a]), datasets:[ barDs('Receita', e3.map(x=>x.rec), CORES.receita), barDs('Custos', e3.map(x=>x.oper+x.ger+x.cmv), CORES.despesa), barDs('Resultado', e3.map(x=>x.res), '#a8780a') ] }, options:chartOpts() });
+  const sv = serieEvolucao();
+  mkChart('chPat', { type:'line', data:{ labels:sv.map(x => mesLabel(x[0])), datasets:[{ label:'Patrimônio', data:sv.map(x=>x[1]), borderColor:'#a8780a', backgroundColor:'#a8780a', borderWidth:2, pointRadius:4, tension:.25 }] }, options:chartOpts({ legend:false }) });
   mkChart('chEsp', { type:'bar', data:{ labels:['Bovinos','Suínos','Galinhas'], datasets:[{ ...barDs('Cabeças', [cabecas('bovino'), cabecas('suino'), cabecas('galinha')], [CORES.bovinos, CORES.suinos, CORES.galinhas]) }] }, options:chartOpts({ legend:false, money:false }) });
 }
 
@@ -311,6 +316,4 @@ window.addEventListener('hashchange', route);
 $('#btnSair').addEventListener('click', async () => { if (S.sb && await confirmar('Sair do sistema neste aparelho?', 'Sair', false)) { await S.sb.auth.signOut(); location.reload(); } });
 $('#burger').addEventListener('click', () => { $('#side').classList.add('open'); $('#scrim').classList.add('on'); });
 $('#scrim').addEventListener('click', () => { $('#side').classList.remove('open'); $('#scrim').classList.remove('on'); });
-if (window.Chart) { Chart.defaults.font.family = 'Inter'; Chart.defaults.color = '#4d5650'; }
-route();
-initDB().catch(e => { console.error(e); semBanco('Erro ao conectar ao banco: '+(e.message||e)); });
+

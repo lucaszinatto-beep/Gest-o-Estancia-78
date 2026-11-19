@@ -1,0 +1,14 @@
+{
+  "name": "ESTÂNCIA 78 – Gestão Rural",
+  "short_name": "Estância 78",
+  "description": "Dados. Manejo. Resultado.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1f3d2b",
+  "theme_color": "#1f3d2b",
+  "lang": "pt-BR",
+  "icons": [
+    { "src": "icons/app.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

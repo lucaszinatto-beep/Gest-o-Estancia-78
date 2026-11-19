@@ -130,12 +130,15 @@ function abrirFicha(id){
       ${ativo ? `<button type="button" class="btn ghost sm" data-act="pesagem" data-id="${id}">Pesagem</button>
       <button type="button" class="btn ghost sm" data-act="indMov" data-tipo="transferencia" data-id="${id}">Transferir ${esp==='bovino'?'lote/pasto':'baia'}</button>
       <button type="button" class="btn ghost sm" data-act="indMov" data-tipo="categoria" data-id="${id}">Mudar categoria</button>
+      <button type="button" class="btn ghost sm" data-act="novoManejoAlvo" data-esp="${esp}" data-animal="${id}">Manejo</button>
       <button type="button" class="btn gold sm" data-act="vender" data-esp="${esp}" data-animal="${id}">Vender</button>
       <button type="button" class="btn danger sm" data-act="indMov" data-tipo="mortalidade" data-id="${id}">Mortalidade</button>
       <button type="button" class="btn danger sm" data-act="indMov" data-tipo="saida" data-id="${id}">Saída / descarte</button>` : ''}
     </div>
     <h4 style="font-size:16px;color:var(--verde);margin:6px 0 8px">Histórico individual</h4>
     ${tabelaMovs(movs, { compacta:true })}
+    <h4 style="font-size:16px;color:var(--verde);margin:16px 0 8px">Manejo sanitário</h4>${tabelaManejos(manejosDoAlvo('A', id), true)}
+    ${a.sexo === 'Fêmea' && A('reproducoes').some(r => r.matriz === 'A:'+id) ? `<h4 style="font-size:16px;color:var(--verde);margin:16px 0 8px">Histórico reprodutivo</h4><div class="tw"><table><thead><tr><th>Cobertura</th><th>Reprodutor</th><th>Previsão</th><th>Situação</th><th>Parto</th><th>Cria</th></tr></thead><tbody>${A('reproducoes').filter(r => r.matriz === 'A:'+id).sort((x,y)=>y.dataCob.localeCompare(x.dataCob)).map(r => `<tr><td>${D(r.dataCob)}</td><td>${esc(r.reprodutor||'—')}</td><td>${D(r.prevParto)}</td><td>${(ST_REPRO[r.status]||[])[1]||r.status}</td><td>${r.parto?D(r.parto.data):'—'}</td><td>${r.parto ? (r.especie==='suino' ? N(r.parto.vivos)+' vivos' : esc(r.parto.ident||'natimorto')) : '—'}</td></tr>`).join('')}</tbody></table></div>` : ''}
     ${pes.length > 1 ? `<h4 style="font-size:16px;color:var(--verde);margin:16px 0 8px">Evolução de peso</h4><div class="chart-box sm"><canvas id="chPeso"></canvas></div>` : ''}`;
   modal({ title:`Ficha · ${ESPECIES[esp].sing} ${a.ident}`, html, wide:true,
     onInit(){ if (pes.length > 1 && window.Chart) (new Chart(document.getElementById('chPeso'), { type:'line',
@@ -325,9 +328,11 @@ function abrirFichaLote(id){
   </div>
   <div class="btnrow"><button type="button" class="btn ghost sm" data-act="editLote" data-id="${id}">Editar</button>
     ${ativo ? `${btn('nascimento','Nascimento')}${btn('compra','Compra')}${btn('mortalidade','Mortalidade','danger')}${btn('descarte','Descarte','danger')}${btn('transferencia','Transferir p/ lote')}${btn('local','Mudar '+(esp==='galinha'?'galinheiro':'baia'))}${btn('categoria','Mudar categoria')}${esp==='suino'?btn('desmame','Desmame'):''}${btn('ajuste','Ajuste')}
+    <button type="button" class="btn ghost sm" data-act="novoManejoAlvo" data-esp="${esp}" data-lote="${id}">Manejo</button>
     <button type="button" class="btn gold sm" data-act="vender" data-esp="${esp}" data-lote="${id}">Vender</button>
     ${saldo===0?`<button type="button" class="btn ghost sm" data-act="encerrarLote" data-id="${id}">Encerrar lote</button>`:''}` : `<span class="badge b-mut">Lote encerrado</span> <button type="button" class="btn ghost sm" data-act="reabrirLote" data-id="${id}">Reabrir</button>`}</div>
-  <h4 style="font-size:16px;color:var(--verde);margin:6px 0 8px">Histórico do lote</h4>${tabelaMovs(movs, { compacta:true, loteRef:id })}`;
+  <h4 style="font-size:16px;color:var(--verde);margin:6px 0 8px">Histórico do lote</h4>${tabelaMovs(movs, { compacta:true, loteRef:id })}
+  <h4 style="font-size:16px;color:var(--verde);margin:16px 0 8px">Manejo sanitário</h4>${tabelaManejos(manejosDoAlvo('L', id), true)}`;
   modal({ title:`Lote ${l.codigo} · ${ESPECIES[esp].nome}`, html, wide:true });
 }
 

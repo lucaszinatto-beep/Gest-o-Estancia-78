@@ -5,6 +5,7 @@
      lancamentos · contas · animais · lotes · movimentacoes · ovos · auditoria · config/geral
    ===================================================================== */
 
+const LOGO_PNG = window.ESTANCIA_LOGO_PNG || '/*LOGO_PNG*/';
 /* ---------- Constantes de domínio ---------- */
 const ESPECIES = {
   bovino:  { nome:'Bovinos',  sing:'Bovino',  atividade:'bovinos',  cor:'var(--c-bov)' },
@@ -101,11 +102,11 @@ const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,8);
 const sum = (arr, f) => arr.reduce((s,x)=>s+(Number(f(x))||0),0);
 
 /* ---------- Estado ---------- */
-const COLS = ['lancamentos','contas','animais','lotes','movimentacoes','ovos'];
+const COLS = ['lancamentos','contas','animais','lotes','movimentacoes','ovos','produtos','estoqueMovs','manejos','reproducoes','eventos','patrimonio','snapshots'];
 const CFG_PADRAO = { catReceitaExtra:[], catDespesaExtra:[], catAnimalExtra:{bovino:[],suino:[],galinha:[]}, valorEstimado:{bovino:3500,suino:600,galinha:40}, locais:[] };
 const S = {
   db:null, user:null, downloads:null, uid:null, nome:'',
-  data:{ lancamentos:[], contas:[], animais:[], lotes:[], movimentacoes:[], ovos:[], auditoria:[] },
+  data:{ lancamentos:[], contas:[], animais:[], lotes:[], movimentacoes:[], ovos:[], produtos:[], estoqueMovs:[], manejos:[], reproducoes:[], eventos:[], patrimonio:[], snapshots:[], auditoria:[] },
   loaded:new Set(), cfg:JSON.parse(JSON.stringify(CFG_PADRAO)), cfgExiste:false,
   ui:{}, page:'dashboard', charts:[], podeEscrever:true
 };
@@ -194,7 +195,7 @@ async function initDB(){
   $('#uav').textContent = (S.nome || 'E').trim().charAt(0).toUpperCase();
   let timer = setTimeout(() => setDbState('warn','sem resposta do banco'), 10000);
   const pend = new Set([...COLS, 'config', 'auditoria']);
-  const done = (k, fromCache) => { if (!fromCache) { pend.delete(k); S.loaded.add(k); } if (!pend.size) { clearTimeout(timer); setDbState('ok','sincronizado'); } hideSplash(); scheduleRender(); };
+  const done = (k, fromCache) => { if (!fromCache) { pend.delete(k); S.loaded.add(k); } if (!pend.size) { clearTimeout(timer); setDbState('ok','sincronizado'); if (typeof registrarSnapshot === 'function' && !S.snapAgendado) { S.snapAgendado = true; setTimeout(registrarSnapshot, 2000); } } hideSplash(); scheduleRender(); };
   for (const c of COLS) {
     colRef(c).onSnapshot(snap => {
       S.data[c] = snap.docs.map(d => ({ id:d.id, ...d.data() }));
@@ -232,6 +233,7 @@ function render(){
   $('#psub').textContent = pg.sub || '';
   renderMenu();
   const html = pg.render();
+  if (typeof atualizarModais === 'function') atualizarModais();
   if (html === S.lastHtml && S.lastPage === S.page && !S.forceRender) return;  // nada mudou na tela: não recria o DOM
   S.lastHtml = html; S.lastPage = S.page; S.forceRender = false;
   S.charts.forEach(c => { try { c.destroy(); } catch(e){} }); S.charts = [];
@@ -262,13 +264,15 @@ const IC = {
 };
 const MENU = [
   ['dashboard','Dashboard'],['financeiro','Financeiro'],['bovinos','Bovinos'],['suinos','Suínos'],['galinhas','Galinhas'],
-  ['manejo','Manejo','Etapa 2'],['reproducao','Reprodução','Etapa 2'],['calendario','Calendário','Etapa 2'],['estoque','Estoque','Etapa 2'],
-  ['custos','Custos','Etapa 3'],['despesas-gerais','Despesas Gerais'],['patrimonio','Patrimônio','Etapa 3'],['relatorios','Relatórios','Etapa 3'],['configuracoes','Configurações']
+  ['manejo','Manejo'],['reproducao','Reprodução'],['calendario','Calendário'],['estoque','Estoque'],
+  ['custos','Custos'],['despesas-gerais','Despesas Gerais'],['patrimonio','Patrimônio'],['relatorios','Relatórios'],['configuracoes','Configurações']
 ];
 function renderMenu(){
-  if (S.menuPage === S.page) return; S.menuPage = S.page;
+  const badge = (typeof contadorAgenda === 'function') ? contadorAgenda() : 0;
+  const chave = S.page + '|' + badge;
+  if (S.menuPage === chave) return; S.menuPage = chave;
   $('#menu').innerHTML = MENU.map(([k,t,tag]) =>
-    `<a href="#${k}" class="${S.page===k?'on':''}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${IC[k]}</svg>${t}${tag?`<span class="tag">${tag}</span>`:''}</a>`).join('');
+    `<a href="#${k}" class="${S.page===k?'on':''}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${IC[k]}</svg>${t}${tag?`<span class="tag">${tag}</span>`:''}${k==='calendario'&&badge?`<span class="tag" style="background:var(--ouro);color:var(--verde3)">${badge}</span>`:''}</a>`).join('');
 }
 
 /* ---------- Modal / diálogos / toast ---------- */
