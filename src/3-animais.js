@@ -78,15 +78,14 @@ function abrirAnimal(esp, edit = null){
       ${fInp('fornecedor','Fornecedor / origem', '')}` : `<div class="fld full note">Origem: <b>${esc(MOV_NOMES[a.origem]||a.origem)}</b> em ${D(a.dataEntrada)}${a.valorAquisicao?` · ${R(a.valorAquisicao)}`:''}. Para corrigir origem ou valor, estorne a movimentação de entrada.</div>`}
     ${fTxt('obs','Observações', a.obs||'')}
   </div>
-  ${novo ? `<div data-w="pg">${blocoPagamento('despesa')}</div>` : ''}
+  ${novo ? '<p class="small muted" data-w="pgnota" style="margin:10px 0 0">A compra entra no Financeiro como despesa paga na data de entrada. Para lançar a prazo ou mudar a conta, edite o lançamento em Financeiro.</p>' : ''}
   <datalist id="dl-racas">${[...new Set(A('animais').filter(x=>x.especie===esp).map(x=>x.raca).filter(Boolean))].map(r=>`<option value="${esc(r)}">`).join('')}</datalist>
   <datalist id="dl-locais-an">${[...new Set(A('animais').filter(x=>x.especie===esp).map(x=>x.local).filter(Boolean))].map(r=>`<option value="${esc(r)}">`).join('')}</datalist>`;
   modal({ title: (novo ? 'Novo ' : 'Editar ') + ESPECIES[esp].sing.toLowerCase(), html, submit: novo ? 'Cadastrar' : 'Salvar',
     onInit(form){
       if (!novo) return;
-      wirePagamento(form);
       const upd = () => { const c = form.elements.origem.value === 'compra';
-        form.querySelector('[data-w=pg]').style.display = c ? '' : 'none';
+        form.querySelector('[data-w=pgnota]').style.display = c ? '' : 'none';
         form.elements.valorAquisicao.closest('.fld').style.display = c ? '' : 'none';
         form.elements.fornecedor.closest('.fld').querySelector('span').textContent = c ? 'Fornecedor' : 'Origem / observação'; };
       form.elements.origem.addEventListener('change', upd); upd();
@@ -101,13 +100,13 @@ function abrirAnimal(esp, edit = null){
       if (!novo) { await dbUpd('animais', a.id, d); await audit('editar','animais',a.id,d.ident); toast('Cadastro atualizado.'); return; }
       const origem = fd.origem, dataEntrada = reqData(fd.dataEntrada, 'a data de entrada');
       const valor = origem === 'compra' ? num(fd.valorAquisicao) : 0;
-      const pago = valor > 0 ? pagoAgoraDe(fd, valor) : 0; checaConta(fd, pago);
+      const contaId = contaPadrao();
       const aid = novoId('animais'), mid = novoId('movimentacoes'), lid = valor > 0 ? novoId('lancamentos') : null;
       await dbSet('animais', aid, { ...d, origem, dataEntrada, valorAquisicao:valor||null, fornecedor:(fd.fornecedor||'').trim(), pesoAtual:d.pesoInicial, dataPeso:d.pesoInicial?dataEntrada:null, situacao:'ativo' });
       await criarMov({ especie:esp, tipo:origem, data:dataEntrada, animalIds:[aid], qtd:1, valor:valor||null, peso:d.pesoInicial, contraparte:(fd.fornecedor||'').trim(), lancamentoId:lid, obs:'Cadastro de '+d.ident, cadastro:true }, mid);
       if (lid) await criarLanc({ tipo:'despesa', data:dataEntrada, atividade:ESPECIES[esp].atividade, categoria:COMPRA_CAT[ESPECIES[esp].atividade], classificacao:'patrimonio',
-        descricao:`Compra ${ESPECIES[esp].sing.toLowerCase()} ${d.ident}`, quantidade:1, valorUnit:valor, valor, forma:fd.forma, contaId:fd.contaId, vencimento:fd.vencimento||dataEntrada,
-        contraparte:(fd.fornecedor||'').trim(), origem:'compra', refId:mid }, { id:lid, pagoAgora:pago, contaId:fd.contaId });
+        descricao:`Compra ${ESPECIES[esp].sing.toLowerCase()} ${d.ident}`, quantidade:1, valorUnit:valor, valor, forma:'', contaId, vencimento:dataEntrada,
+        contraparte:(fd.fornecedor||'').trim(), origem:'compra', refId:mid }, { id:lid, pagoAgora:valor, contaId });
       toast(`${ESPECIES[esp].sing} ${d.ident} cadastrado.`);
     } });
 }
@@ -214,13 +213,13 @@ function abrirLote(esp, edit = null){
       ${esp==='suino' ? fInp('matriz','Matriz (leitegada)','', 'list="dl-matrizes"') : ''}` :
       `<div class="fld full note">Entrada: ${esc(MOV_NOMES[l.origem]||l.origem)} de ${N(l.qtdInicial)} cabeças em ${D(l.dataEntrada)}${l.valorAquisicao?' · '+R(l.valorAquisicao):''}.</div>`}
     ${fTxt('obs','Observações', l.obs||'')}
-  </div>${novo ? `<div data-w="pg">${blocoPagamento('despesa')}</div>` : ''}
+  </div>${novo ? '<p class="small muted" data-w="pgnota" style="margin:10px 0 0">A compra entra no Financeiro como despesa paga na data de entrada. Para lançar a prazo ou mudar a conta, edite o lançamento em Financeiro.</p>' : ''}
   <datalist id="dl-matrizes">${indAtivos('suino').filter(x=>x.sexo==='Fêmea').map(x=>`<option value="${esc(x.ident)}">`).join('')}</datalist>`;
   modal({ title: novo ? `Novo lote de ${ESPECIES[esp].nome.toLowerCase()}` : 'Editar lote', html, submit: novo ? 'Cadastrar lote' : 'Salvar',
     onInit(form){
-      if (!novo) return; wirePagamento(form);
+      if (!novo) return;
       const upd = () => { const c = form.elements.origem.value === 'compra';
-        form.querySelector('[data-w=pg]').style.display = c ? '' : 'none'; form.elements.valorAquisicao.closest('.fld').style.display = c ? '' : 'none'; };
+        form.querySelector('[data-w=pgnota]').style.display = c ? '' : 'none'; form.elements.valorAquisicao.closest('.fld').style.display = c ? '' : 'none'; };
       form.elements.origem.addEventListener('change', upd); upd();
     },
     async onSubmit(fd){
@@ -231,13 +230,13 @@ function abrirLote(esp, edit = null){
       const qtd = Math.round(reqPos(fd.qtd, 'a quantidade inicial'));
       const origem = fd.origem, data = reqData(fd.dataEntrada, 'a data de entrada');
       const valor = origem === 'compra' ? num(fd.valorAquisicao) : 0;
-      const pago = valor > 0 ? pagoAgoraDe(fd, valor) : 0; checaConta(fd, pago);
+      const contaId = contaPadrao();
       const loteId = novoId('lotes'), mid = novoId('movimentacoes'), lid = valor > 0 ? novoId('lancamentos') : null;
       await dbSet('lotes', loteId, { ...d, qtdInicial:qtd, origem, dataEntrada:data, valorAquisicao:valor||null, fornecedor:(fd.fornecedor||'').trim(), matriz:(fd.matriz||'').trim(), situacao:'ativo' });
       await criarMov({ especie:esp, tipo:origem, data, loteId, delta:qtd, qtd, valor:valor||null, contraparte:(fd.fornecedor||'').trim(), lancamentoId:lid, cadastro:true, obs:'Formação do lote '+d.codigo }, mid);
       if (lid) await criarLanc({ tipo:'despesa', data, atividade:ESPECIES[esp].atividade, categoria:COMPRA_CAT[ESPECIES[esp].atividade], classificacao:'patrimonio',
-        descricao:`Compra lote ${d.codigo} (${qtd} cab.)`, quantidade:qtd, valorUnit:round2(valor/qtd), valor, forma:fd.forma, contaId:fd.contaId, vencimento:fd.vencimento||data,
-        contraparte:(fd.fornecedor||'').trim(), origem:'compra', refId:mid }, { id:lid, pagoAgora:pago, contaId:fd.contaId });
+        descricao:`Compra lote ${d.codigo} (${qtd} cab.)`, quantidade:qtd, valorUnit:round2(valor/qtd), valor, forma:'', contaId, vencimento:data,
+        contraparte:(fd.fornecedor||'').trim(), origem:'compra', refId:mid }, { id:lid, pagoAgora:valor, contaId });
       toast(`Lote ${d.codigo} cadastrado com ${qtd} cabeças.`);
     } });
 }

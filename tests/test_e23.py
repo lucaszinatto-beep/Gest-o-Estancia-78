@@ -1,6 +1,6 @@
 import os
 from playwright.sync_api import sync_playwright
-APP = '/home/claude/estancia78/index.html'; NM = '/home/claude/testenv/node_modules/'
+APP = '/home/claude/gest-o-estancia-78/index.html'; NM = '/home/claude/testenv/node_modules/'
 errors = []; results = []
 def ok(c, m): results.append(c); print(('PASS ' if c else 'FAIL ') + m, flush=True)
 with sync_playwright() as p:

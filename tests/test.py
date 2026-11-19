@@ -1,7 +1,7 @@
 import re, sys, json
 from playwright.sync_api import sync_playwright
 
-APP = ''+__import__('os').path.dirname(__import__('os').path.abspath(__file__))+'/../dist/estancia78.html'
+APP = '/home/claude/gest-o-estancia-78/dist/estancia78.html'
 NM = '/home/claude/testenv/node_modules/'
 errors = []; results = []
 
@@ -90,7 +90,7 @@ with sync_playwright() as p:
     ok(E("saldoTotal()") == -1550, 'saldo após compra = -1550')
     pg.click('[data-act=novoAnimal]'); fill('ident','101'); submit()
     ok('Já existe' in err(), 'bloqueia brinco duplicado'); closeall()
-    pg.click('[data-act=novoAnimal]'); fill('ident','102'); sel('categoria','Boi de engorda'); sel('sexo','Macho'); fill('pesoInicial','350'); fill('valorAquisicao','2500'); sel('situacao','pendente'); fill('local','Pasto 1'); submit()
+    pg.click('[data-act=novoAnimal]'); fill('ident','102'); sel('categoria','Boi de engorda'); sel('sexo','Macho'); fill('pesoInicial','350'); fill('valorAquisicao','2500'); fill('local','Pasto 1'); submit()
     pg.click('[data-act=novoAnimal]'); fill('ident','103'); sel('origem','nascimento'); sel('categoria','Bezerra'); fill('mae','101'); fill('pesoInicial','30'); submit()
     ok(E("cabecas('bovino')") == 3, '3 bovinos ativos')
     ok(E("A('lancamentos').filter(l=>l.categoria==='Compra de bovinos').length") == 2, 'nascimento não gera lançamento financeiro')
