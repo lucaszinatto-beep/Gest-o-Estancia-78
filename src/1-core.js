@@ -168,15 +168,27 @@ async function audit(acao, colecao, docId, resumo){
 }
 
 async function initDB(){
-  const claude = await waitClaude();
-  if (!claude) return semBanco('Abra este sistema pelo Claude (navegador ou app) com a sua conta para acessar o banco de dados.');
-  S.db = await claude.use('db');
-  S.user = await claude.use('user');
-  claude.use('downloads').then(d => S.downloads = d).catch(()=>{});
-  if (!S.db) return semBanco('Entre na sua conta do Claude para acessar o banco de dados da Estância 78.');
-  if (S.user) {
-    try { S.uid = await S.user.id(); const me = await S.user.me(); S.nome = (me && me.name) || ''; } catch(e){}
-    try { const w = await S.user.can('data.write'); if (w === false) S.podeEscrever = false; } catch(e){}
+  const cfgSb = window.ESTANCIA_CONFIG || {};
+  if (cfgSb.supabaseUrl && cfgSb.supabaseAnonKey && !/COLE_AQUI/.test(cfgSb.supabaseUrl + cfgSb.supabaseAnonKey)) {
+    // Modo site próprio (Supabase + Vercel)
+    if (!window.supabase) return semBanco('Não foi possível carregar o Supabase. Verifique a internet e recarregue a página.');
+    S.modo = 'supabase';
+    const r = await sbIniciar(cfgSb);
+    S.db = r.db; S.uid = r.uid; S.nome = r.nome; S.downloads = downloadsNavegador;
+    $('#btnSair').hidden = false;
+  } else {
+    // Modo Claude (artifact)
+    S.modo = 'claude';
+    const claude = await waitClaude();
+    if (!claude) return semBanco('Banco de dados não configurado. Abra pelo Claude ou preencha o arquivo config.js com os dados do Supabase.');
+    S.db = await claude.use('db');
+    S.user = await claude.use('user');
+    claude.use('downloads').then(d => S.downloads = d).catch(()=>{});
+    if (!S.db) return semBanco('Entre na sua conta do Claude para acessar o banco de dados da Estância 78.');
+    if (S.user) {
+      try { S.uid = await S.user.id(); const me = await S.user.me(); S.nome = (me && me.name) || ''; } catch(e){}
+      try { const w = await S.user.can('data.write'); if (w === false) S.podeEscrever = false; } catch(e){}
+    }
   }
   $('#uname').textContent = S.nome || 'Proprietário';
   $('#uav').textContent = (S.nome || 'E').trim().charAt(0).toUpperCase();

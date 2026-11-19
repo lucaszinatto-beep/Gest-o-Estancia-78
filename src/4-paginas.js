@@ -138,7 +138,9 @@ function pgConfig(){
         <div style="margin-top:10px"><button class="btn primary sm" data-act="salvarVE">Salvar valores</button></div></div>
       <div class="card"><h3>Usuário e segurança</h3><p style="margin:0;line-height:1.7;color:var(--tx2)">Acesso: <b>${esc(S.nome||'Proprietário')}</b> (login da conta Claude).<br>
         Somente você (e quem você convidar como editor) acessa e altera estes dados. Exclusões são lógicas e ficam registradas na auditoria.</p>
-        <div class="btnrow" style="margin-top:12px"><button class="btn ghost sm" data-act="backup">Baixar backup completo (JSON)</button></div></div>
+        <div class="btnrow" style="margin-top:12px"><button class="btn ghost sm" data-act="backup">Baixar backup completo (JSON)</button>
+          <label class="btn ghost sm" style="cursor:pointer">Importar backup (JSON)<input type="file" id="inBackup" accept=".json,application/json" hidden></label></div>
+        <p class="small muted" style="margin:6px 0 0">Banco atual: <b>${S.modo==='supabase'?'Supabase (site próprio)':'Claude'}</b>. Use o backup para levar os dados de um para o outro.</p></div>
       ${listaEditavel('Categorias extras de receita','catReceitaExtra', S.cfg.catReceitaExtra||[])}
       ${listaEditavel('Categorias extras de despesa','catDespesaExtra', S.cfg.catDespesaExtra||[])}
       ${listaEditavel('Categorias extras de bovinos','catAnimalExtra.bovino', (S.cfg.catAnimalExtra||{}).bovino||[])}
@@ -279,6 +281,25 @@ function onFilter(e){
   if (el.tagName === 'INPUT' && el.type !== 'date' && e.type === 'input') { clearTimeout(onFilter.t); onFilter.t = setTimeout(render, 200); } else render();
 }
 document.addEventListener('input', onFilter);
+document.addEventListener('change', async e => {
+  if (e.target.id !== 'inBackup' || !e.target.files[0]) return;
+  try { await importarBackup(await e.target.files[0].text()); } catch(err){ falha(err); }
+  e.target.value = '';
+});
+async function importarBackup(txt){
+  exigeEscrita();
+  let b; try { b = JSON.parse(txt); } catch(e){ throw new Error('Arquivo inválido: não é um backup da Estância 78.'); }
+  if (!b || !Array.isArray(b.lancamentos)) throw new Error('Arquivo inválido: não é um backup da Estância 78.');
+  const linhas = [];
+  for (const c of COLS) for (const d of (b[c]||[])) { const { id, ...data } = d; if (id) linhas.push({ colecao:c, id, data }); }
+  const existentes = COLS.reduce((n,c) => n + (S.data[c]||[]).length, 0);
+  if (!(await confirmar(`Importar <b>${linhas.length}</b> registro(s) do backup de ${D((b.geradoEm||'').slice(0,10))}?` + (existentes ? `<br><br>Já existem ${existentes} registros neste banco. Registros com o mesmo código serão substituídos; os demais são mantidos.` : ''), 'Importar', false))) return;
+  if (S.db.importar) await S.db.importar(linhas);
+  else for (const r of linhas) await S.db.collection(r.colecao).doc(r.id).set(r.data);
+  if (b.config) await salvarCfg(b.config);
+  await audit('importar backup', 'todas', '-', linhas.length + ' registros');
+  toast(`${linhas.length} registros importados.`);
+}
 document.addEventListener('change', e => { if (e.target.dataset && e.target.dataset.filter && (e.target.tagName === 'SELECT' || e.target.type === 'date')) onFilter(e); });
 function route(){
   const h = (location.hash || '').replace('#','');
@@ -287,6 +308,7 @@ function route(){
   window.scrollTo(0,0); render();
 }
 window.addEventListener('hashchange', route);
+$('#btnSair').addEventListener('click', async () => { if (S.sb && await confirmar('Sair do sistema neste aparelho?', 'Sair', false)) { await S.sb.auth.signOut(); location.reload(); } });
 $('#burger').addEventListener('click', () => { $('#side').classList.add('open'); $('#scrim').classList.add('on'); });
 $('#scrim').addEventListener('click', () => { $('#side').classList.remove('open'); $('#scrim').classList.remove('on'); });
 if (window.Chart) { Chart.defaults.font.family = 'Inter'; Chart.defaults.color = '#4d5650'; }

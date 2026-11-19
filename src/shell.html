@@ -8,6 +8,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
 <style>
 :root{
   --verde:#1f3d2b; --verde2:#2a5139; --verde3:#16301f; --oliva:#6b7a3a; --oliva2:#8a9a52;
@@ -157,6 +159,13 @@ tfoot td{font-weight:700;background:#fafbf8;border-top:1px solid var(--cinza2)}
 .alerts{display:flex;flex-direction:column;gap:6px}
 .alerts div{padding:8px 12px;border-radius:8px;font-size:12.5px;background:#fbf0d9;color:#6b4e00}
 .alerts div.err{background:#f9e3de;color:#8e2f1c}
+.login{display:flex;flex-direction:column;gap:10px;width:300px;max-width:86vw;margin:0 auto;text-align:left}
+.login input{border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:#fff;border-radius:8px;padding:11px 12px;font-size:15px}
+.login input::placeholder{color:#b9cdbf}
+.login .lrow{display:flex;justify-content:space-between;gap:10px;font-size:12.5px}
+.login .lrow a{color:var(--ouro2)}
+.login .lmsg{background:rgba(255,255,255,.1);border-radius:8px;padding:9px 11px;font-size:13px;line-height:1.45}
+.login .lmsg.err{background:rgba(196,70,46,.35)}
 .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--tx2);margin-top:6px}
 @media (max-width:1100px){.g5{grid-template-columns:repeat(3,minmax(0,1fr))}.g4{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:860px){
@@ -197,7 +206,7 @@ tfoot td{font-weight:700;background:#fafbf8;border-top:1px solid var(--cinza2)}
     <header class="top">
       <button class="burger" id="burger" aria-label="Menu"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
       <div><h1 id="ptitle">Dashboard</h1><div class="sub" id="psub"></div></div>
-      <div class="usr"><span class="dbstate" id="dbstate">conectando…</span><span class="nm" id="uname"></span><div class="av" id="uav">E</div></div>
+      <div class="usr"><span class="dbstate" id="dbstate">conectando…</span><span class="nm" id="uname"></span><div class="av" id="uav">E</div><button class="btn ghost sm" id="btnSair" hidden>Sair</button></div>
     </header>
     <main class="content" id="main"></main>
   </div>
